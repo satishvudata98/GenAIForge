@@ -15,6 +15,8 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini ./alembic.ini
 COPY pyproject.toml ./pyproject.toml
 COPY README.md ./README.md
 

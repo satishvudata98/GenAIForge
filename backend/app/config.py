@@ -38,10 +38,21 @@ class Settings(BaseSettings):
 
     openai_api_key: str | None = None
     cohere_api_key: str | None = None
+    groq_api_key: str | None = None
+    google_api_key: str | None = None
+    xai_api_key: str | None = None
+    tavily_api_key: str | None = None
+
     langfuse_host: AnyHttpUrl | None = None
     langfuse_public_key: str | None = None
     langfuse_secret_key: str | None = None
     langfuse_disabled: bool = False
+
+    # Day 8: semantic cache & rate limiting
+    semantic_cache_threshold: float = 0.95
+    semantic_cache_ttl: int = 3600
+    semantic_cache_max_entries: int = 500
+    rate_limit_rpm: int = 60
 
 
 @lru_cache

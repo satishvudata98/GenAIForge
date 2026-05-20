@@ -7,16 +7,19 @@ Use this checklist to track your implementation progress across all 4 weeks of t
 ## Progress Summary
 
 - Week 1 completed day blocks: 7 of 7 (`Day 1` through `Day 7`)
-- Week 1 in-progress day: none
-- Remaining Week 1 day blocks: none
+- Week 2 completed day blocks: 7 of 7 (`Day 8` through `Day 14`)
+- Remaining: Week 3 (Days 15–21) and Week 4 (Days 22–30)
 
 Current implementation:
-- Done: repository scaffold, docker baseline, FastAPI bootstrap, request middleware, health/readiness/metrics, SQLAlchemy models, Alembic migration.
-- Done: Day 5 wrapper layer for embeddings, Qdrant, Redis, and LangFuse integration hooks, plus manual LangFuse event verification.
-- Done: Day 6 RAG ingestion schemas, ingestion service, and `POST /v1/rag/ingest` route with route tests.
-- Done: Day 7 RAG retrieval, SSE query route, seed script, sample docs, and CI workflow.
-- Done: full default local stack validation for backend, worker, frontend, Nginx, Prometheus, Grafana, and Jaeger.
-- Pending: Week 2 implementation.
+- Done: Week 1 — full RAG pipeline, 10-service Docker Compose, CI workflow.
+- Done: Day 8 — semantic cache (`core/semantic_cache.py`, cosine ≥ 0.95), Redis token bucket rate limiter, `X-Cache` headers.
+- Done: Day 9 — unified LLM clients (`core/llm_clients.py`) for OpenAI, Groq, Gemini, xAI via OpenAI-compat API.
+- Done: Day 10 — LangGraph Research Agent (`agents/research_agent.py`) with Tavily + Wikipedia tools.
+- Done: Day 11 — Code Review Agent with HITL (`agents/code_review_agent.py`, `agents/checkpointer.py`), `POST /v1/agents/resume/{job_id}`.
+- Done: Day 12 — CrewAI pipeline (`workers/crew_pipeline.py`), Celery tasks (`workers/tasks.py`), workers SSE routes.
+- Done: Day 13 — Next.js RAG Playground (`/playground`) with Tailwind CSS, QueryPanel, ResponseStream, SourceCard.
+- Done: Day 14 — Agent Board (`/agents`) with React Flow graph, HumanInputModal, Zustand stores, shared SSE hook.
+- Pending: Week 3 implementation (observability, RAGAS eval, Grafana dashboards).
 
 ## 📅 Week 1: Foundation & Baseline RAG
 
@@ -60,36 +63,36 @@ Current implementation:
 
 ## 📅 Week 2: Frontend Playground & Multi-Agent Board
 
-- [ ] **Day 8: Semantic Caching & Rate Limiting**
-  - [ ] Create Token Bucket rate-limiting middleware using Redis.
-  - [ ] Integrate `GPTCache` on Redis with cosine similarity limit $\ge 0.95$.
-  - [ ] Add cache indicator headers (`X-Cache: HIT / MISS`) to query API.
-- [ ] **Day 9: Multi-Model Integration**
-  - [ ] Integrate Groq (`llama3-70b`), Google Gemini (`gemini-1.5-flash`), and xAI (`grok-2`) into `llm_clients.py`.
-  - [ ] Set up backoff retry handling with `tenacity`.
-  - [ ] Implement token counting utilities per model provider.
-- [ ] **Day 10: Research Agent Graph (LangGraph)**
-  - [ ] Design graph state in `backend/app/agents/state.py`.
-  - [ ] Create nodes (`plan`, `search`, `extract`, `synthesize`, `report`).
-  - [ ] Implement Tavily Search and Wikipedia APIs as tools.
-- [ ] **Day 11: Code Review Agent & Human-in-the-Loop**
-  - [ ] Create Code Review state machine using LangGraph.
-  - [ ] Set up Postgres database checkpoint saver (`PostgresSaver`).
-  - [ ] Add approval interrupts at code suggestion nodes.
-  - [ ] Implement API endpoint `POST /v1/agents/resume/{job_id}`.
-- [ ] **Day 12: CrewAI Pipeline & Celery Workers**
-  - [ ] Define Researcher, Writer, and Editor tasks using CrewAI.
-  - [ ] Configure Celery workers inside `backend/app/workers/celery_app.py`.
-  - [ ] Implement Celery task execution queues.
-  - [ ] Build SSE routes to stream Celery task execution events.
-- [ ] **Day 13: Next.js Bootstrap & RAG Playground UI**
-  - [ ] Setup Next.js 14 App Router environment.
-  - [ ] Install Tailwind CSS styling system.
-  - [ ] Build RAG Playground interface with side-by-side comparison mode.
-- [ ] **Day 14: Agent Board UI & React Flow**
-  - [ ] Create Agent Board view `/agents`.
-  - [ ] Build graph visualizer using `React Flow`.
-  - [ ] Implement live agent logs and human-in-the-loop validation modals.
+- [x] **Day 8: Semantic Caching & Rate Limiting**
+  - [x] Create Token Bucket rate-limiting middleware using Redis.
+  - [x] Integrate semantic cache on Redis with cosine similarity limit ≥ 0.95 (`backend/app/core/semantic_cache.py`).
+  - [x] Add cache indicator headers (`X-Cache: HIT / MISS`) to query API.
+- [x] **Day 9: Multi-Model Integration**
+  - [x] Integrate Groq (`llama3-70b`), Google Gemini (`gemini-1.5-flash`), and xAI (`grok-2`) into `llm_clients.py`.
+  - [x] Set up backoff retry handling with `tenacity`.
+  - [x] Improve system prompt with citation format in `pipeline.py`.
+- [x] **Day 10: Research Agent Graph (LangGraph)**
+  - [x] Design graph state in `backend/app/agents/state.py`.
+  - [x] Create nodes (`plan`, `search`, `extract`, `synthesize`, `report`).
+  - [x] Implement Tavily Search and Wikipedia APIs as tools.
+- [x] **Day 11: Code Review Agent & Human-in-the-Loop**
+  - [x] Create Code Review state machine using LangGraph.
+  - [x] Set up Postgres database checkpoint saver (`PostgresSaver`) in `checkpointer.py`.
+  - [x] Add approval interrupts at code suggestion nodes.
+  - [x] Implement API endpoint `POST /v1/agents/resume/{job_id}`.
+- [x] **Day 12: CrewAI Pipeline & Celery Workers**
+  - [x] Define Researcher, Writer, and Editor tasks using CrewAI (`crew_pipeline.py`).
+  - [x] Configure Celery workers inside `backend/app/workers/celery_app.py`.
+  - [x] Implement Celery task execution queues (`tasks.py`).
+  - [x] Build SSE routes to stream Celery task execution events (`api/v1/workers.py`).
+- [x] **Day 13: Next.js Bootstrap & RAG Playground UI**
+  - [x] Setup Next.js 14 App Router environment.
+  - [x] Install Tailwind CSS styling system (`tailwind.config.ts`, `postcss.config.mjs`).
+  - [x] Build RAG Playground interface (`/playground`) with model picker, reranker toggle, and source citations.
+- [x] **Day 14: Agent Board UI & React Flow**
+  - [x] Create Agent Board view `/agents`.
+  - [x] Build graph visualizer using `@xyflow/react` (`AgentGraph.tsx`).
+  - [x] Implement live agent logs and human-in-the-loop validation modal (`HumanInputModal.tsx`).
 
 ---
 

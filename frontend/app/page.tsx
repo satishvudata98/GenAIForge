@@ -1,8 +1,8 @@
 const modules = [
-  "RAG Playground",
-  "Multi-Agent Board",
-  "Observability & Eval",
-  "API Gateway",
+  { name: "RAG Playground", href: "/playground", ready: true, desc: "Semantic search with multi-model support, reranking, and streaming responses." },
+  { name: "Multi-Agent Board", href: "/agents", ready: true, desc: "LangGraph research & code-review agents with live graph visualization and HITL." },
+  { name: "Observability & Eval", href: "/observability", ready: false, desc: "Prometheus + Grafana dashboards, LangFuse tracing, and RAGAS evaluation." },
+  { name: "API Gateway", href: "/gateway", ready: false, desc: "Rate limiting, semantic cache stats, and API key management." },
 ];
 
 export default function HomePage() {
@@ -26,14 +26,13 @@ export default function HomePage() {
         }}
       >
         <p style={{ letterSpacing: "0.24em", textTransform: "uppercase", fontSize: "0.8rem" }}>
-          Week 1 foundation
+          Week 2 — Live
         </p>
         <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 5rem)", margin: "0.5rem 0 1rem" }}>
           GenAI Forge
         </h1>
         <p style={{ maxWidth: "42rem", fontSize: "1.1rem", lineHeight: 1.7, margin: 0 }}>
-          Initial workspace shell for the production-grade GenAI platform. Backend health routes,
-          container orchestration, and the first app surface are now in place.
+          Production-grade GenAI platform: RAG pipeline, multi-agent orchestration, and full observability — all in one Docker Compose.
         </p>
         <div
           style={{
@@ -43,21 +42,30 @@ export default function HomePage() {
             marginTop: "2rem",
           }}
         >
-          {modules.map((moduleName) => (
-            <article
-              key={moduleName}
+          {modules.map((mod) => (
+            <a
+              key={mod.name}
+              href={mod.ready ? mod.href : undefined}
               style={{
                 padding: "1rem",
                 borderRadius: "18px",
                 background: "rgba(255, 255, 255, 0.78)",
-                border: "1px solid rgba(31, 27, 22, 0.08)",
+                border: `1px solid ${mod.ready ? "rgba(215, 142, 63, 0.30)" : "rgba(31, 27, 22, 0.08)"}`,
+                textDecoration: "none",
+                color: "inherit",
+                opacity: mod.ready ? 1 : 0.6,
+                cursor: mod.ready ? "pointer" : "default",
+                transition: "border-color 0.15s",
               }}
             >
-              <strong>{moduleName}</strong>
-              <p style={{ marginBottom: 0, lineHeight: 1.6 }}>
-                Planned during Week 1-4 implementation and connected through the FastAPI backend.
+              <strong style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                {mod.name}
+                {mod.ready && <span style={{ fontSize: "0.65rem", color: "#22c55e" }}>●</span>}
+              </strong>
+              <p style={{ marginBottom: 0, lineHeight: 1.6, marginTop: "0.4rem", fontSize: "0.9rem" }}>
+                {mod.desc}
               </p>
-            </article>
+            </a>
           ))}
         </div>
       </section>

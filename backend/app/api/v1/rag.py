@@ -7,7 +7,9 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.semantic_cache import capturing_sse_stream, get_cached_response, replay_cached_sse
 from app.dependencies import get_db
+from app.middleware import check_rate_limit
 from app.models.db import RagCollection
 from app.models.schemas import (
     ApiResponse,
@@ -22,6 +24,12 @@ from app.rag.pipeline import stream_rag_response
 from app.rag.retrieval import retrieve_chunks
 
 router = APIRouter(prefix="/rag", tags=["rag"])
+
+_SSE_HEADERS = {
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+}
 
 
 def build_meta(request: Request) -> ResponseMeta:
@@ -112,13 +120,14 @@ async def ingest_route(
     return ApiResponse(data=result, meta=build_meta(request))
 
 
-@router.post("/query")
+@router.post("/query", dependencies=[Depends(check_rate_limit)])
 async def query_route(
     request: Request,
     payload: QueryRequest,
     db: AsyncSession = Depends(get_db),
 ):
     started_at = perf_counter()
+    request_id = getattr(request.state, "request_id", "unknown")
 
     result = await db.execute(select(RagCollection).where(RagCollection.id == payload.collection_id))
     collection = result.scalars().first()
@@ -128,6 +137,15 @@ async def query_route(
             message="The requested collection does not exist.",
             request=request,
             status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Semantic cache lookup
+    cache_entry = await get_cached_response(payload.query)
+    if cache_entry is not None:
+        return StreamingResponse(
+            replay_cached_sse(cache_entry, request_id=request_id, started_at=started_at, model=payload.model),
+            media_type="text/event-stream",
+            headers={**_SSE_HEADERS, "X-Cache": "HIT"},
         )
 
     try:
@@ -152,22 +170,17 @@ async def query_route(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    async def event_stream():
-        async for event in stream_rag_response(
-            query=payload.query,
-            chunks=chunks,
-            model=payload.model,
-            request_id=getattr(request.state, "request_id", "unknown"),
-            started_at=started_at,
-        ):
-            yield event
+    raw_gen = stream_rag_response(
+        query=payload.query,
+        chunks=chunks,
+        model=payload.model,
+        request_id=request_id,
+        started_at=started_at,
+    )
+    caching_gen = await capturing_sse_stream(raw_gen, query=payload.query)
 
     return StreamingResponse(
-        event_stream(),
+        caching_gen,
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
+        headers={**_SSE_HEADERS, "X-Cache": "MISS"},
     )
