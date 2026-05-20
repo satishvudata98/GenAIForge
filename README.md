@@ -51,33 +51,38 @@ Notes:
 
 - The root `.env` is used by Docker Compose and therefore uses container hostnames like `postgres`, `redis`, and `qdrant`.
 - `backend/.env` is reserved for host-side Python runs and uses `localhost` service addresses.
-- Nginx publishes on `http://localhost:8080` by default to avoid port `80` conflicts.
+- Docker does not require activating `backend/.venv`; the virtualenv is only for host-side Python commands like `pytest`, `alembic`, and `scripts/seed_qdrant.py`.
+- The default host ports are intentionally high-numbered to reduce conflicts on developer machines.
 
 ## Run the Full Week 1 Stack
 
 From the repository root:
 
 ```bash
-cd infra
-docker compose up -d --build
-docker compose ps
+docker compose -f infra/docker-compose.yml up -d --build
+docker compose -f infra/docker-compose.yml ps
 ```
+
+You can also run the same commands from `infra/` if you prefer. Activating `.venv` is not required for any Docker command.
 
 Expected local endpoints:
 
-- Frontend: `http://localhost:3000`
-- Nginx proxy: `http://localhost:8080`
-- FastAPI direct: `http://localhost:8000`
-- Prometheus: `http://localhost:9090`
-- Grafana: `http://localhost:3001`
-- Jaeger: `http://localhost:16686`
-- Qdrant dashboard: `http://localhost:6333/dashboard`
+- Frontend: `http://localhost:43010`
+- Nginx proxy: `http://localhost:48080`
+- FastAPI direct: `http://localhost:58000`
+- Prometheus: `http://localhost:49090`
+- Grafana: `http://localhost:43011`
+- Jaeger: `http://localhost:46686`
+- OTLP gRPC: `localhost:44317`
+- OTLP HTTP: `localhost:44318`
+- Qdrant dashboard: `http://localhost:56333/dashboard`
+- PostgreSQL: `localhost:55432`
+- Redis: `localhost:56379`
 
 Optional LangFuse self-hosted profile:
 
 ```bash
-cd infra
-docker compose --profile observability up -d langfuse-server
+docker compose -f infra/docker-compose.yml --profile observability up -d langfuse-server
 ```
 
 ## Quick Smoke Tests
@@ -85,19 +90,19 @@ docker compose --profile observability up -d langfuse-server
 Health through Nginx:
 
 ```bash
-curl -sS http://localhost:8080/v1/health
+curl -sS http://localhost:48080/v1/health
 ```
 
 Readiness direct to backend:
 
 ```bash
-curl -sS http://localhost:8000/v1/readiness
+curl -sS http://localhost:58000/v1/readiness
 ```
 
 Metrics:
 
 ```bash
-curl -sS http://localhost:8000/metrics | head
+curl -sS http://localhost:58000/metrics | head
 ```
 
 ## Seed Sample Documents
@@ -112,6 +117,8 @@ cd backend
 cd ..
 python scripts/seed_qdrant.py
 ```
+
+You need `.venv` here because this command runs Python on your host machine, not inside Docker.
 
 Custom collection example:
 
@@ -132,7 +139,7 @@ The script prints a JSON response containing:
 ### 1. Ingest a File
 
 ```bash
-curl -X POST http://localhost:8080/v1/rag/ingest \
+curl -X POST http://localhost:48080/v1/rag/ingest \
 	-F "collection_name=knowledge-base" \
 	-F "chunk_size=512" \
 	-F "chunk_overlap=64" \
@@ -144,7 +151,7 @@ Save the returned `collection_id`.
 ### 2. Query with SSE
 
 ```bash
-curl -N -X POST http://localhost:8080/v1/rag/query \
+curl -N -X POST http://localhost:48080/v1/rag/query \
 	-H "Content-Type: application/json" \
 	-d '{
 		"query": "What is GenAI Forge?",
@@ -196,10 +203,10 @@ ruff check .
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev -- --port 43010
 ```
 
-Then open `http://localhost:3000`.
+Then open `http://localhost:43010`.
 
 ## Current Week 1 Scope Status
 
@@ -223,20 +230,17 @@ Known runtime constraints:
 Stop the stack:
 
 ```bash
-cd infra
-docker compose down
+docker compose -f infra/docker-compose.yml down
 ```
 
 Stop and remove volumes:
 
 ```bash
-cd infra
-docker compose down -v
+docker compose -f infra/docker-compose.yml down -v
 ```
 
 Check compose status:
 
 ```bash
-cd infra
-docker compose ps
+docker compose -f infra/docker-compose.yml ps
 ```

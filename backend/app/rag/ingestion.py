@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from decimal import Decimal
 from hashlib import sha256
 from pathlib import Path
-from uuid import uuid4
+from uuid import uuid4, uuid5
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -96,7 +96,7 @@ async def ingest_documents(
             source_file = metadata.get("file_name") or Path(
                 str(metadata.get("file_path") or "unknown")
             ).name
-            point_id = sha256(f"{collection.id}:{chunk_hash}".encode("utf-8")).hexdigest()
+            point_id = str(uuid5(collection.id, chunk_hash))
             payload = {
                 "document_id": str(getattr(node, "ref_doc_id", None) or getattr(node, "node_id", point_id)),
                 "collection_id": str(collection.id),

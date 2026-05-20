@@ -24,13 +24,15 @@ class Settings(BaseSettings):
     port: int = 8000
     api_v1_prefix: str = "/v1"
     allowed_origins: list[str] = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
+        "http://localhost:43010",
+        "http://127.0.0.1:43010",
+        "http://localhost:48080",
+        "http://127.0.0.1:48080",
     ]
 
-    postgres_dsn: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/genai_forge"
-    redis_url: str = "redis://localhost:6379/0"
-    qdrant_url: AnyHttpUrl = "http://localhost:6333"
+    postgres_dsn: str = "postgresql+asyncpg://postgres:postgres@localhost:55432/genai_forge"
+    redis_url: str = "redis://localhost:56379/0"
+    qdrant_url: AnyHttpUrl = "http://localhost:56333"
     embedding_model: str = "text-embedding-3-large"
     embedding_dimensions: int = 3072
 

@@ -71,13 +71,14 @@ class QdrantStore:
         top_k: int = 5,
         query_filter: models.Filter | None = None,
     ) -> list[models.ScoredPoint]:
-        return await self._client.search(
+        response = await self._client.query_points(
             collection_name=collection_name,
-            query_vector=list(query_vector),
+            query=list(query_vector),
             query_filter=query_filter,
             limit=top_k,
             with_payload=True,
         )
+        return response.points
 
     async def close(self) -> None:
         await self._client.close()
