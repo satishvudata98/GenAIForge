@@ -84,11 +84,15 @@ Errors use standard JSON structures containing validation details and request co
 - **Method**: `POST`
 - **Payload**: `multipart/form-data` containing files, collections, and partition settings.
 - **Success Response**: Returns the count of chunks generated and estimated embedding costs.
+- **Current Implementation**: Returns the standard response envelope with collection metadata, `documents_ingested`, `chunks_indexed`, and estimated embedding cost.
+- **Current Error Behavior**: Returns `INVALID_REQUEST` for empty uploads or invalid chunk settings, and `INTERNAL_ERROR` for unexpected ingestion failures.
 
 ### 2. Stream RAG Query (`POST /v1/rag/query`)
 - **Method**: `POST`
 - **Payload**: JSON parameters containing the query, target collection ID, and model name.
 - **Success Response**: Streams Server-Sent Events containing text chunks and source citations.
+- **Current Implementation**: Returns `text/event-stream` with `chunk`, `source`, `meta`, and `done` events, and sets `X-Accel-Buffering: no` for proxy-safe streaming.
+- **Current Error Behavior**: Returns `COLLECTION_NOT_FOUND` when the referenced collection is missing, `INVALID_REQUEST` for invalid query inputs, and `INTERNAL_ERROR` for provider failures.
 
 ### 3. Start Agent Job (`POST /v1/agents/run`)
 - **Method**: `POST`

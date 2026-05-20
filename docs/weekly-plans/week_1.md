@@ -12,11 +12,13 @@ This week focuses on initializing the repository, configuring the Docker-based l
 
 ## ✅ Current Implementation Status (May 20, 2026)
 - Backend bootstrap is live with `FastAPI`, CORS, request ID middleware, `/v1/health`, `/v1/readiness`, and `/metrics`.
-- Core local stack has been validated for `postgres`, `redis`, `qdrant`, and `app` through Docker Compose.
+- Full default local stack has been validated for `postgres`, `redis`, `qdrant`, `app`, `celery-worker`, `frontend`, `nginx`, `prometheus`, `grafana`, and `jaeger` through Docker Compose.
 - Phase 1 relational tables (`users`, `rag_collections`, `request_log`) are implemented and applied through Alembic.
-- Day 5 wrapper modules are implemented for OpenAI embeddings, Qdrant access, Redis cache access, and LangFuse tracing hooks.
+- Day 5 wrapper modules are implemented for OpenAI embeddings, Qdrant access, Redis cache access, and LangFuse tracing hooks, and a manual LangFuse verification event was flushed successfully.
+- Day 6 ingestion schemas, ingestion service, and `POST /v1/rag/ingest` route are implemented and validated with focused route tests.
+- Day 7 retrieval, SSE query route, seed script, and CI workflow are implemented and validated with focused route tests and script entrypoint checks.
 - Minimal frontend shell, Dockerfiles, `.env` templates, and pre-commit hooks are in place.
-- Remaining Week 1 work: LangFuse trace verification, RAG ingestion/query APIs, seed script, and CI workflow.
+- Week 1 implementation scope is complete.
 
 ---
 
@@ -34,9 +36,9 @@ This week focuses on initializing the repository, configuring the Docker-based l
 - [x] Add health checks to the Postgres, Redis, and Qdrant services.
 - [x] Configure volume structures to persist database and index storage.
 - [x] Write the initial configuration for the Nginx reverse proxy.
-- [ ] Run `docker compose up -d` to verify that the full stack starts successfully.
+- [x] Run `docker compose up -d` to verify that the full stack starts successfully.
 
-Note: the core backend stack (`postgres`, `redis`, `qdrant`, `app`) is already validated. `langfuse-server` is defined behind an optional `observability` profile until its full backing stack is provisioned.
+Note: the default local entrypoint for Nginx is now `http://localhost:8080` to avoid collisions on host port `80`. `langfuse-server` remains defined behind an optional `observability` profile.
 
 ### Day 3: Backend Core Bootstrap
 - [x] Implement `backend/app/main.py` containing the FastAPI application factory.
@@ -57,20 +59,21 @@ Note: the core backend stack (`postgres`, `redis`, `qdrant`, `app`) is already v
 - [x] Build `backend/app/core/vector_store.py` to handle async operations with Qdrant.
 - [x] Build `backend/app/core/cache.py` to handle async operations with Redis.
 - [x] Configure `backend/app/core/tracing.py` to initialize Langfuse clients.
-- [ ] Instrument embeddings and Qdrant wrapper functions with Langfuse `@observe()` trace decorators.
-- [ ] Run manual scripts to verify that test traces log correctly to the LangFuse dashboard.
+- [x] Instrument embeddings and Qdrant wrapper functions with Langfuse `@observe()` trace decorators.
+- [x] Run manual scripts to verify that test traces log correctly to the LangFuse dashboard.
 
 ### Day 6: RAG Ingestion Pipeline
-- [ ] Write `backend/app/rag/ingestion.py` using `LlamaIndex` to parse documents, chunk text, and generate embeddings.
-- [ ] Build the file upload API route `POST /v1/rag/ingest` to handle document uploads, parse chunks, generate embeddings, and upsert them to Qdrant.
-- [ ] Add exception handling to capture parse failures or API connection errors.
-- [ ] Verify that document and chunk counts are logged correctly in the PostgreSQL `rag_collections` table.
+- [x] Write `backend/app/rag/ingestion.py` using `LlamaIndex` to parse documents, chunk text, and generate embeddings.
+- [x] Add `backend/app/models/schemas.py` with standard response and ingest/query schema models.
+- [x] Build the file upload API route `POST /v1/rag/ingest` to handle document uploads, parse chunks, generate embeddings, and upsert them to Qdrant.
+- [x] Add exception handling to capture parse failures or API connection errors.
+- [x] Verify that document and chunk counts are logged correctly in the PostgreSQL `rag_collections` table.
 
 ### Day 7: RAG Streaming Query Engine & Seed Script
-- [ ] Write `backend/app/rag/retrieval.py` to retrieve relevant document chunks from Qdrant and rerank them using Cohere Rerank v3.
-- [ ] Build the streaming query API route `POST /v1/rag/query` returning Server-Sent Events (SSE).
-- [ ] Write `scripts/seed_qdrant.py` to seed the database with sample documents for testing.
-- [ ] Set up the GitHub Actions workflow file `.github/workflows/ci.yml` to run linting and pytest suites.
+- [x] Write `backend/app/rag/retrieval.py` to retrieve relevant document chunks from Qdrant and rerank them using Cohere Rerank v3.
+- [x] Build the streaming query API route `POST /v1/rag/query` returning Server-Sent Events (SSE).
+- [x] Write `scripts/seed_qdrant.py` to seed the database with sample documents for testing.
+- [x] Set up the GitHub Actions workflow file `.github/workflows/ci.yml` to run linting and pytest suites.
 
 ---
 
@@ -93,6 +96,5 @@ Note: the core backend stack (`postgres`, `redis`, `qdrant`, `app`) is already v
 - Monitor log files to ensure `X-Request-ID` correlation identifiers are propagated across requests.
 
 ## ⚠️ Known Limitations
-- `langfuse-server` is intentionally behind an optional Compose profile for now; the backend tracing wrapper exists, but trace export has not been verified against a live LangFuse target yet.
-- RAG ingestion and streaming query routes are still pending.
-- Full-stack `docker compose up -d` validation is pending the remaining service surfaces.
+- `langfuse-server` is intentionally behind an optional Compose profile for now; LangFuse Cloud verification succeeded, while self-hosted LangFuse remains optional.
+- Live OpenAI-backed ingestion and generation still depend on providing a valid OpenAI API key at runtime.

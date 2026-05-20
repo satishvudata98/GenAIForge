@@ -4,6 +4,7 @@ from openai import APIConnectionError, APITimeoutError, AsyncOpenAI, InternalSer
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.config import get_settings
+from app.core.tracing import observe
 
 EMBEDDING_BATCH_SIZE = 100
 
@@ -24,6 +25,7 @@ def _get_client() -> AsyncOpenAI:
     wait=wait_exponential(multiplier=1, min=1, max=8),
     reraise=True,
 )
+@observe(name="openai_embed_batch")
 async def _embed_batch(texts: Sequence[str]) -> list[list[float]]:
     response = await _get_client().embeddings.create(
         model=settings.embedding_model,
@@ -32,6 +34,7 @@ async def _embed_batch(texts: Sequence[str]) -> list[list[float]]:
     return [item.embedding for item in response.data]
 
 
+@observe(name="openai_embed_texts")
 async def embed_texts(texts: Sequence[str]) -> list[list[float]]:
     if not texts:
         return []

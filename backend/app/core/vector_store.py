@@ -4,6 +4,7 @@ from uuid import uuid4
 from qdrant_client import AsyncQdrantClient, models
 
 from app.config import get_settings
+from app.core.tracing import observe
 
 settings = get_settings()
 
@@ -28,6 +29,7 @@ class QdrantStore:
             check_compatibility=False,
         )
 
+    @observe(name="qdrant_create_collection")
     async def create_collection(
         self,
         collection_name: str,
@@ -46,6 +48,7 @@ class QdrantStore:
             hnsw_config=models.HnswConfigDiff(m=16, ef_construct=100),
         )
 
+    @observe(name="qdrant_upsert")
     async def upsert(
         self,
         collection_name: str,
@@ -60,6 +63,7 @@ class QdrantStore:
             points=list(points),
         )
 
+    @observe(name="qdrant_search")
     async def search(
         self,
         collection_name: str,

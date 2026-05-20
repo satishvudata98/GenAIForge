@@ -40,9 +40,9 @@ The platform runs locally using `Docker Compose v2`. The services are organized 
 - **`langfuse-server`**: Present behind the optional `observability` Compose profile until full self-hosted tracing dependencies are provisioned.
 
 ## ✅ Current Local Runtime Status
-- `postgres`, `redis`, `qdrant`, and `backend` have been started and validated successfully.
+- `postgres`, `redis`, `qdrant`, `backend`, `celery-worker`, `frontend`, `nginx`, `prometheus`, `grafana`, and `jaeger` have been started and validated successfully.
 - Qdrant health checks use a shell-only TCP probe because the upstream image does not ship `wget` or `curl`.
-- `frontend`, `nginx`, `prometheus`, `grafana`, `jaeger`, and `celery-worker` are scaffolded but not yet run through a full end-to-end validation pass.
+- Nginx publishes on port `8080` by default to avoid collisions on host port `80`.
 
 ---
 
@@ -54,7 +54,7 @@ Runs on all incoming Pull Requests:
 - **Code Formatting**: Checks formatting using `black` and `prettier`.
 - **Unit Testing**: Runs `pytest` suites and collects coverage reports.
 
-Current status: planned, not yet implemented.
+Current status: implemented for the backend slice with Ruff and focused pytest coverage.
 
 ### 2. Deployment Pipeline (`deploy.yml`)
 Runs on merges to the `main` branch:

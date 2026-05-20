@@ -11,10 +11,13 @@ This phase establishes the developer environment, spins up the Docker-based loca
 - Deliver a production-ready async ingestion pipeline and an SSE streaming retrieval-augmented generation query API with source citations.
 
 ## ✅ Current Phase 1 Status (May 20, 2026)
-- Implemented: backend app factory, request middleware, `/v1/health`, `/v1/readiness`, `/metrics`, SQLAlchemy models, Alembic migration, Dockerfiles, frontend shell, core AI wrappers, and the core Compose baseline.
-- Validated: local `pytest` health test, core container boot for `postgres`, `redis`, `qdrant`, and `app`, live health/readiness endpoints, and the initial migration against Postgres.
+- Implemented: backend app factory, request middleware, `/v1/health`, `/v1/readiness`, `/metrics`, SQLAlchemy models, Alembic migration, Dockerfiles, frontend shell, core AI wrappers, RAG ingestion schemas/service/route, RAG retrieval/SSE query flow, seed tooling, and the core Compose baseline.
+- Validated: local `pytest` health test, full default-stack container boot, live health/readiness endpoints through both the app and Nginx, and the initial migration against Postgres.
 - Validated: local wrapper regression test for the new Day 5 core modules.
-- Remaining in Phase 1: LangFuse live trace verification, ingestion/query APIs, seed script, and CI workflow.
+- Validated: local Day 6 ingestion route tests with mocked ingestion dependencies.
+- Validated: local Day 7 query route tests and the seed script entrypoint.
+- Validated: wrapper-level tracing instrumentation and manual LangFuse event export.
+- Remaining in Phase 1: no open implementation tasks for Week 1 scope.
 
 ---
 
@@ -22,10 +25,10 @@ This phase establishes the developer environment, spins up the Docker-based loca
 1. **Multi-Service Docker Compose Environment**: Orchestration of PostgreSQL, Qdrant, Redis, Prometheus, Grafana, Jaeger, Nginx, Celery, FastAPI, and Next.js, with `langfuse-server` defined under an optional `observability` profile.
 2. **FastAPI Backbone**: Core settings system using Pydantic, request/response middleware, request ID propagation, Prometheus metrics, and status checks.
 3. **Database Migration Pipeline**: Automatic relational schema setup via SQLAlchemy and Alembic.
-4. **Document Ingestion API**: Endpoint to parse documents, chunk text recursively, calculate high-dimension embeddings, and upsert them to Qdrant.
-5. **RAG Streaming Query Engine**: Hybrid query path leveraging Qdrant ANN search, Cohere Rerank v3, and streamed answers using OpenAI `gpt-4o-mini` via Server-Sent Events (SSE).
-6. **Seed Script**: Script to seed Qdrant with domain-specific mock documentation for testing.
-7. **CI/CD Foundation**: GitHub Actions workflow to lint (Ruff/ESLint) and test on Pull Requests.
+4. **Document Ingestion API**: Implemented multipart endpoint that parses documents, chunks text recursively, calculates embeddings, upserts them to Qdrant, and updates `rag_collections` metadata.
+5. **RAG Streaming Query Engine**: Implemented query path leveraging Qdrant ANN search, Cohere Rerank v3, and streamed answers using OpenAI `gpt-4o-mini` via Server-Sent Events (SSE).
+6. **Seed Script**: Implemented script to seed Qdrant with sample documentation for testing.
+7. **CI/CD Foundation**: Implemented GitHub Actions workflow that runs Ruff and backend pytest checks.
 
 ---
 
@@ -39,18 +42,37 @@ backend/
 │   ├── middleware.py               # Request ID, request logging, and latency metrics
 │   ├── dependencies.py             # DB sessions and HTTP client dependencies
 │   ├── worker.py                   # Celery application bootstrap
+│   ├── core/
+│   │   ├── embeddings.py           # OpenAI embedding wrapper
+│   │   ├── vector_store.py         # Qdrant async wrapper
+│   │   ├── cache.py                # Redis async wrapper
+│   │   └── tracing.py              # LangFuse wrapper and observe decorator
 │   ├── api/v1/
 │   │   ├── router.py               # Aggregated endpoint router
-│   │   └── health.py               # Liveness and readiness indicators
-│   └── models/
-│       └── db.py                   # Phase 1 SQLAlchemy models
+│   │   ├── health.py               # Liveness and readiness indicators
+│   │   └── rag.py                  # Ingest and query routes
+│   ├── models/
+│   │   ├── db.py                   # Phase 1 SQLAlchemy models
+│   │   └── schemas.py              # Standard API and ingest/query schemas
+│   └── rag/
+│       ├── ingestion.py            # Document parsing, chunking, embedding, and upsert
+│       ├── retrieval.py            # Retrieval and Cohere reranking
+│       └── pipeline.py             # OpenAI streaming answer generation
 ├── alembic/
 │   ├── env.py                      # Async migration environment
 │   └── versions/
 │       └── 0001_initial_schema.py  # Initial users / rag_collections / request_log tables
 ├── Dockerfile
 └── tests/
-  └── test_health.py              # Bootstrap health regression test
+    ├── test_health.py              # Bootstrap health regression test
+    ├── test_core.py                # Wrapper regression tests
+  ├── test_ingest.py              # Ingest route regression tests
+  └── test_query.py               # Query route regression tests
+scripts/
+├── seed_qdrant.py                  # Sample collection seeding script
+└── sample_docs/
+  ├── platform_overview.md
+  └── rag_notes.md
 frontend/
 ├── app/
 │   ├── layout.tsx                  # Initial app shell
@@ -141,6 +163,8 @@ Implementation note: the initial migration has been applied successfully against
 - **Integration Tests**: Execute `pytest backend/tests/test_rag.py` using real test database configurations and mocked HTTP responses for the external AI providers (OpenAI, Cohere).
 - **Endpoint Performance Verification**: Validate that `/health` resolves in less than 50ms, and `/metrics` exports valid Prometheus headers.
 - **Generator Validation**: Verify that streaming buffers flush chunks progressively rather than caching the full response until compilation.
+
+Current status: focused regression coverage exists for health, wrapper initialization, ingestion, and query route behavior.
 
 ---
 

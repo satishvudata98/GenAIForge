@@ -6,14 +6,17 @@ Use this checklist to track your implementation progress across all 4 weeks of t
 
 ## Progress Summary
 
-- Week 1 completed days: 4 of 7
-- Week 1 in-progress day: Day 5
-- Remaining Week 1 days: Day 6 and Day 7, plus Day 5 LangFuse trace verification
+- Week 1 completed day blocks: 7 of 7 (`Day 1` through `Day 7`)
+- Week 1 in-progress day: none
+- Remaining Week 1 day blocks: none
 
 Current implementation:
 - Done: repository scaffold, docker baseline, FastAPI bootstrap, request middleware, health/readiness/metrics, SQLAlchemy models, Alembic migration.
-- Done: Day 5 wrapper layer for embeddings, Qdrant, Redis, and LangFuse integration hooks.
-- Pending: verify LangFuse traces against a running LangFuse target, RAG ingest, RAG query SSE, seed script, CI workflow.
+- Done: Day 5 wrapper layer for embeddings, Qdrant, Redis, and LangFuse integration hooks, plus manual LangFuse event verification.
+- Done: Day 6 RAG ingestion schemas, ingestion service, and `POST /v1/rag/ingest` route with route tests.
+- Done: Day 7 RAG retrieval, SSE query route, seed script, sample docs, and CI workflow.
+- Done: full default local stack validation for backend, worker, frontend, Nginx, Prometheus, Grafana, and Jaeger.
+- Pending: Week 2 implementation.
 
 ## 📅 Week 1: Foundation & Baseline RAG
 
@@ -37,21 +40,21 @@ Current implementation:
   - [x] Setup SQLAlchemy session dependencies.
   - [x] Initialize Alembic and generate initial migrations.
   - [x] Apply database migrations (`alembic upgrade head`).
-- [ ] **Day 5: AI Client Wrappers & LangFuse Integration**
+- [x] **Day 5: AI Client Wrappers & LangFuse Integration**
   - [x] Build `embeddings.py` (OpenAI `text-embedding-3-large`).
   - [x] Create `vector_store.py` (Qdrant client connectivity).
   - [x] Add Redis cache wrapper for async cache access.
   - [x] Set up LangFuse tracing hooks inside `tracing.py`.
-  - [ ] Verify test traces log correctly to the LangFuse dashboard.
-- [ ] **Day 6: RAG Ingestion Pipeline**
-  - [ ] Build LlamaIndex document chunking and indexing logic in `backend/app/rag/ingestion.py`.
-  - [ ] Implement API endpoint `POST /v1/rag/ingest`.
-  - [ ] Log collection stats in PostgreSQL `rag_collections`.
-- [ ] **Day 7: Streaming RAG Query API**
-  - [ ] Implement `backend/app/rag/retrieval.py` with Qdrant query and Cohere Rerank v3.
-  - [ ] Implement query API endpoint `POST /v1/rag/query` with SSE stream.
-  - [ ] Write `scripts/seed_qdrant.py` script.
-  - [ ] Configure GitHub Actions `ci.yml` pipeline.
+  - [x] Verify test traces log correctly to the LangFuse dashboard.
+- [x] **Day 6: RAG Ingestion Pipeline**
+  - [x] Build LlamaIndex document chunking and indexing logic in `backend/app/rag/ingestion.py`.
+  - [x] Implement API endpoint `POST /v1/rag/ingest`.
+  - [x] Log collection stats in PostgreSQL `rag_collections`.
+- [x] **Day 7: Streaming RAG Query API**
+  - [x] Implement `backend/app/rag/retrieval.py` with Qdrant query and Cohere Rerank v3.
+  - [x] Implement query API endpoint `POST /v1/rag/query` with SSE stream.
+  - [x] Write `scripts/seed_qdrant.py` script.
+  - [x] Configure GitHub Actions `ci.yml` pipeline.
 
 ---
 
