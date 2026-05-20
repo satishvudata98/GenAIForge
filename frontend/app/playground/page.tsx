@@ -1,26 +1,30 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePlaygroundStore } from "@/lib/store";
+import IngestPanel from "./components/IngestPanel";
 import QueryPanel from "./components/QueryPanel";
 import ResponseStream from "./components/ResponseStream";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:48080/v1";
 
 export default function PlaygroundPage() {
-  const { sessions, activeSessionId, setCollections } = usePlaygroundStore();
+  const { sessions, activeSessionId, collections, setCollections } = usePlaygroundStore();
+  const [tab, setTab] = useState<"query" | "ingest">("query");
 
-  // Load available collections on mount
-  useEffect(() => {
+  function loadCollections() {
     fetch(`${API_BASE}/rag/collections`)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data?.data)) setCollections(data.data);
       })
-      .catch(() => {
-        // Collections endpoint not yet implemented — use empty list
-      });
-  }, [setCollections]);
+      .catch(() => {});
+  }
+
+  useEffect(() => {
+    loadCollections();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
 
@@ -37,10 +41,42 @@ export default function PlaygroundPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-          {/* Left: query panel */}
+          {/* Left panel */}
           <div className="rounded-2xl border border-forge-border bg-forge-surface/60 p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-forge-muted">Query</h2>
-            <QueryPanel />
+            {/* Tab switcher */}
+            <div className="mb-4 flex gap-1 rounded-xl border border-forge-border p-1">
+              {(["query", "ingest"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${
+                    tab === t ? "bg-forge-accent text-white" : "text-forge-muted hover:text-forge-text"
+                  }`}
+                >
+                  {t === "query" ? "Query" : "Ingest"}
+                </button>
+              ))}
+            </div>
+
+            {tab === "query" ? (
+              <>
+                {collections.length === 0 && (
+                  <p className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
+                    No collections yet — use the Ingest tab to upload documents first.
+                  </p>
+                )}
+                <QueryPanel />
+              </>
+            ) : (
+              <IngestPanel
+                onIngestComplete={(col) => {
+                  loadCollections();
+                  setTab("query");
+                  // Notify user the collection is ready
+                  void col;
+                }}
+              />
+            )}
           </div>
 
           {/* Right: response stream */}

@@ -7,9 +7,10 @@ import { type Source, usePlaygroundStore } from "@/lib/store";
 const MODELS = [
   { label: "GPT-4o-mini", value: "gpt-4o-mini" },
   { label: "GPT-4o", value: "gpt-4o" },
-  { label: "Groq Llama 3 70B", value: "llama3-70b-8192" },
-  { label: "Gemini 1.5 Flash", value: "gemini-1.5-flash" },
-  { label: "Grok-2", value: "grok-2" },
+  { label: "GPT-120B", value: "openai/gpt-oss-120b" },
+  { label: "Groq Llama 3.3 70B", value: "llama-3.3-70b-versatile" },
+  { label: "Gemini 3.1 Flash Lite", value: "gemini-3.1-flash-lite" },
+  { label: "Gemini 2.5 Flash", value: "gemini-2.5-flash" },
 ];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:48080/v1";

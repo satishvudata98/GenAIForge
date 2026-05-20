@@ -87,6 +87,7 @@ export interface AgentNodeState {
 
 export interface AgentJob {
   jobId: string;
+  backendJobId?: string;
   type: "research" | "code-review";
   status: "running" | "awaiting_human" | "complete" | "error";
   nodes: AgentNodeState[];
@@ -101,6 +102,7 @@ interface AgentBoardStore {
   updateNodeStatus: (jobId: string, nodeId: string, status: NodeStatus) => void;
   setJobStatus: (jobId: string, status: AgentJob["status"]) => void;
   setPendingReview: (jobId: string, review: AgentJob["pendingReview"]) => void;
+  setBackendJobId: (jobId: string, backendJobId: string) => void;
   setReport: (jobId: string, report: string) => void;
   setActiveJob: (id: string) => void;
 }
@@ -125,6 +127,9 @@ export const useAgentBoardStore = create<AgentBoardStore>((set) => ({
 
   setPendingReview: (jobId, review) =>
     set((s) => ({ jobs: s.jobs.map((j) => (j.jobId === jobId ? { ...j, pendingReview: review } : j)) })),
+
+  setBackendJobId: (jobId, backendJobId) =>
+    set((s) => ({ jobs: s.jobs.map((j) => (j.jobId === jobId ? { ...j, backendJobId } : j)) })),
 
   setReport: (jobId, report) =>
     set((s) => ({ jobs: s.jobs.map((j) => (j.jobId === jobId ? { ...j, report } : j)) })),

@@ -15,7 +15,7 @@ from app.core.tracing import observe
 
 settings = get_settings()
 
-Provider = Literal["openai", "groq", "gemini", "xai"]
+Provider = Literal["openai", "groq", "gemini"]
 
 _PROVIDER_CONFIGS: dict[str, dict] = {
     "openai": {
@@ -31,22 +31,16 @@ _PROVIDER_CONFIGS: dict[str, dict] = {
         "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
         "key_attr": "google_api_key",
     },
-    "xai": {
-        "base_url": "https://api.x.ai/v1",
-        "key_attr": "xai_api_key",
-    },
 }
 
 # Model → provider routing table
 SUPPORTED_MODELS: dict[str, Provider] = {
     "gpt-4o": "openai",
     "gpt-4o-mini": "openai",
-    "llama3-70b-8192": "groq",
+    "openai/gpt-oss-120b": "groq",
     "llama-3.3-70b-versatile": "groq",
-    "gemini-1.5-flash": "gemini",
-    "gemini-1.5-pro": "gemini",
-    "grok-2": "xai",
-    "grok-2-mini": "xai",
+    "gemini-3.1-flash-lite": "gemini",
+    "gemini-2.5-flash": "gemini",
 }
 
 
@@ -54,7 +48,13 @@ def infer_provider(model: str) -> Provider:
     return SUPPORTED_MODELS.get(model, "openai")
 
 
+# Module-level cache so clients are not GC'd while their streams are still open.
+_CLIENT_CACHE: dict[Provider, AsyncOpenAI] = {}
+
+
 def build_client(provider: Provider) -> AsyncOpenAI:
+    if provider in _CLIENT_CACHE:
+        return _CLIENT_CACHE[provider]
     cfg = _PROVIDER_CONFIGS[provider]
     api_key: str | None = getattr(settings, cfg["key_attr"], None)
     if not api_key:
@@ -65,7 +65,9 @@ def build_client(provider: Provider) -> AsyncOpenAI:
     kwargs: dict = {"api_key": api_key}
     if cfg["base_url"]:
         kwargs["base_url"] = cfg["base_url"]
-    return AsyncOpenAI(**kwargs)
+    client = AsyncOpenAI(**kwargs)
+    _CLIENT_CACHE[provider] = client
+    return client
 
 
 @retry(

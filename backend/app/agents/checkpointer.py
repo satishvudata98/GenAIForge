@@ -24,7 +24,7 @@ def get_postgres_checkpointer():
         return PostgresSaver.from_conn_string(sync_dsn)
     except ImportError:
         logger.warning(
-            "langgraph-checkpoint-postgres not installed; HITL checkpointing disabled. "
-            "Run: pip install langgraph-checkpoint-postgres"
+            "langgraph-checkpoint-postgres not installed; falling back to in-process MemorySaver."
         )
-        return None
+        from langgraph.checkpoint.memory import MemorySaver  # type: ignore[import]
+        return MemorySaver()

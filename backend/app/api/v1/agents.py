@@ -5,6 +5,7 @@ from time import perf_counter
 
 from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
+from langgraph.types import Command
 from pydantic import BaseModel
 
 from app.middleware import check_rate_limit
@@ -156,7 +157,7 @@ async def resume_route(job_id: str, payload: ResumeRequest, request: Request):
     async def event_stream():
         try:
             async for chunk in graph.astream(
-                {"human_feedback": payload.feedback},
+                Command(resume=payload.feedback),
                 config=config,
                 stream_mode="updates",
             ):

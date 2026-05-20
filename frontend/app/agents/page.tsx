@@ -25,7 +25,7 @@ const CODE_REVIEW_NODES: AgentNodeState[] = [
 ];
 
 export default function AgentBoardPage() {
-  const { jobs, activeJobId, addJob, updateNodeStatus, setJobStatus, setPendingReview, setReport, setActiveJob } =
+  const { jobs, activeJobId, addJob, updateNodeStatus, setJobStatus, setPendingReview, setBackendJobId, setReport, setActiveJob } =
     useAgentBoardStore();
   const [query, setQuery] = useState("");
   const [code, setCode] = useState("");
@@ -70,7 +70,8 @@ export default function AgentBoardPage() {
         if (c.node) updateNodeStatus(jobId, c.node, c.node === "human_review" ? "paused" : "running");
       },
       onSource: (content) => {
-        const s = content as { analysis?: string; security_issues?: string[]; suggestions?: string[] };
+        const s = content as { job_id?: string; analysis?: string; security_issues?: string[]; suggestions?: string[] };
+        if (s.job_id) setBackendJobId(jobId, s.job_id);
         setPendingReview(jobId, { analysis: s.analysis ?? "", security_issues: s.security_issues ?? [], suggestions: s.suggestions ?? [] });
         setJobStatus(jobId, "awaiting_human");
         setShowModal(true);
@@ -86,7 +87,10 @@ export default function AgentBoardPage() {
     updateNodeStatus(jobId, "human_review", "done");
     updateNodeStatus(jobId, "finalize", "running");
 
-    fetch(`${API_BASE}/agents/resume/${jobId}`, {
+    const job = useAgentBoardStore.getState().jobs.find((j) => j.jobId === jobId);
+    const resumeId = job?.backendJobId ?? jobId;
+
+    fetch(`${API_BASE}/agents/resume/${resumeId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ feedback }),

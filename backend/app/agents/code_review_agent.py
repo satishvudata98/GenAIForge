@@ -125,4 +125,4 @@ def build_code_review_graph():
 
 def get_code_review_graph():
     checkpointer = get_postgres_checkpointer()
-    return build_code_review_graph().compile(checkpointer=checkpointer, interrupt_before=["human_review"])
+    return build_code_review_graph().compile(checkpointer=checkpointer)

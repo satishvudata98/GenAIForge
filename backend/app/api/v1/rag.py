@@ -53,6 +53,23 @@ def error_response(
     return JSONResponse(status_code=status_code, content=payload.model_dump(mode="json"))
 
 
+@router.get("/collections")
+async def list_collections_route(request: Request, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(RagCollection).order_by(RagCollection.created_at.desc()))
+    collections = result.scalars().all()
+    data = [
+        {
+            "id": str(c.id),
+            "name": c.name,
+            "chunk_count": c.chunk_count,
+            "doc_count": c.doc_count,
+            "created_at": c.created_at.isoformat(),
+        }
+        for c in collections
+    ]
+    return ApiResponse(data=data, meta=build_meta(request))
+
+
 @router.post("/ingest", response_model=ApiResponse[IngestResponse])
 async def ingest_route(
     request: Request,
@@ -170,7 +187,7 @@ async def query_route(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    raw_gen = stream_rag_response(
+    raw_gen = await stream_rag_response(
         query=payload.query,
         chunks=chunks,
         model=payload.model,

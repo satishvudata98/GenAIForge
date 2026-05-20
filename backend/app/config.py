@@ -40,7 +40,6 @@ class Settings(BaseSettings):
     cohere_api_key: str | None = None
     groq_api_key: str | None = None
     google_api_key: str | None = None
-    xai_api_key: str | None = None
     tavily_api_key: str | None = None
 
     langfuse_host: AnyHttpUrl | None = None

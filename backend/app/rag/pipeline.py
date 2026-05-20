@@ -50,9 +50,14 @@ async def stream_rag_response(
 
     async def _gen() -> AsyncGenerator[str, None]:
         chunk_index = 0
-        async for delta in token_gen:
-            yield format_sse_event(SseEvent(type="chunk", content=delta, index=chunk_index))
-            chunk_index += 1
+        try:
+            async for delta in token_gen:
+                yield format_sse_event(SseEvent(type="chunk", content=delta, index=chunk_index))
+                chunk_index += 1
+        except Exception as exc:
+            yield format_sse_event(SseEvent(type="chunk", content=f"\n\n[Error: {exc}]", index=chunk_index))
+            yield format_sse_event(SseEvent(type="done"))
+            return
 
         for chunk in chunks:
             yield format_sse_event(SseEvent(type="source", content=chunk.to_source_payload()))
