@@ -4,32 +4,44 @@ Use this checklist to track your implementation progress across all 4 weeks of t
 
 ---
 
+## Progress Summary
+
+- Week 1 completed days: 4 of 7
+- Week 1 in-progress day: Day 5
+- Remaining Week 1 days: Day 6 and Day 7, plus Day 5 LangFuse trace verification
+
+Current implementation:
+- Done: repository scaffold, docker baseline, FastAPI bootstrap, request middleware, health/readiness/metrics, SQLAlchemy models, Alembic migration.
+- Done: Day 5 wrapper layer for embeddings, Qdrant, Redis, and LangFuse integration hooks.
+- Pending: verify LangFuse traces against a running LangFuse target, RAG ingest, RAG query SSE, seed script, CI workflow.
+
 ## 📅 Week 1: Foundation & Baseline RAG
 
-- [ ] **Day 1: Repository Setup**
-  - [ ] Initialize git repo and project root.
-  - [ ] Create folder structure: `backend/`, `frontend/`, `infra/`, `scripts/`.
-  - [ ] Set up `backend/pyproject.toml`, `requirements.txt` and frontend `package.json`.
-  - [ ] Create `.pre-commit-config.yaml` for Ruff and Prettier.
-- [ ] **Day 2: Docker Compose Environment**
-  - [ ] Configure `infra/docker-compose.yml` for all 10 services.
-  - [ ] Add health checks and named volumes.
-  - [ ] Validate environment file loader structure (`.env.example`).
-  - [ ] Spin up local containers (`docker compose up -d`) and verify service availability.
-- [ ] **Day 3: FastAPI Backend skeleton**
-  - [ ] Implement `backend/app/main.py` application factory.
-  - [ ] Setup Pydantic configs in `backend/app/config.py`.
-  - [ ] Add request logging and latency middlewares.
-  - [ ] Expose basic `/health` endpoint.
-- [ ] **Day 4: Relational Databases & Migrations**
-  - [ ] Map PostgreSQL models (`users`, `rag_collections`, `request_log`).
-  - [ ] Setup SQLAlchemy session dependencies.
-  - [ ] Initialize Alembic (`alembic init alembic`) and generate initial migrations.
-  - [ ] Apply database migrations (`alembic upgrade head`).
+- [x] **Day 1: Repository Setup**
+  - [x] Initialize git repo and project root.
+  - [x] Create folder structure: `backend/`, `frontend/`, `infra/`, `scripts/`.
+  - [x] Set up `backend/pyproject.toml`, `requirements.txt` and frontend `package.json`.
+  - [x] Create `.pre-commit-config.yaml` for Ruff and Prettier.
+- [x] **Day 2: Docker Compose Environment**
+  - [x] Configure `infra/docker-compose.yml` for all 10 services.
+  - [x] Add health checks and named volumes.
+  - [x] Validate environment file loader structure (`.env.example`).
+  - [x] Spin up and verify the core local containers (`postgres`, `redis`, `qdrant`, `app`).
+- [x] **Day 3: FastAPI Backend skeleton**
+  - [x] Implement `backend/app/main.py` application factory.
+  - [x] Setup Pydantic configs in `backend/app/config.py`.
+  - [x] Add request logging and latency middlewares.
+  - [x] Expose `/health`, `/readiness`, and `/metrics` endpoints.
+- [x] **Day 4: Relational Databases & Migrations**
+  - [x] Map PostgreSQL models (`users`, `rag_collections`, `request_log`).
+  - [x] Setup SQLAlchemy session dependencies.
+  - [x] Initialize Alembic and generate initial migrations.
+  - [x] Apply database migrations (`alembic upgrade head`).
 - [ ] **Day 5: AI Client Wrappers & LangFuse Integration**
-  - [ ] Build `embeddings.py` (OpenAI `text-embedding-3-large`).
-  - [ ] Create `vector_store.py` (Qdrant client connectivity).
-  - [ ] Set up LangFuse tracing hooks inside `tracing.py`.
+  - [x] Build `embeddings.py` (OpenAI `text-embedding-3-large`).
+  - [x] Create `vector_store.py` (Qdrant client connectivity).
+  - [x] Add Redis cache wrapper for async cache access.
+  - [x] Set up LangFuse tracing hooks inside `tracing.py`.
   - [ ] Verify test traces log correctly to the LangFuse dashboard.
 - [ ] **Day 6: RAG Ingestion Pipeline**
   - [ ] Build LlamaIndex document chunking and indexing logic in `backend/app/rag/ingestion.py`.

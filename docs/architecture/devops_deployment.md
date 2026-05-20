@@ -37,6 +37,12 @@ The platform runs locally using `Docker Compose v2`. The services are organized 
 - **`prometheus`**: Collects system metrics.
 - **`grafana`**: Displays system and performance dashboards.
 - **`jaeger`**: Stores and visualizes execution traces.
+- **`langfuse-server`**: Present behind the optional `observability` Compose profile until full self-hosted tracing dependencies are provisioned.
+
+## ✅ Current Local Runtime Status
+- `postgres`, `redis`, `qdrant`, and `backend` have been started and validated successfully.
+- Qdrant health checks use a shell-only TCP probe because the upstream image does not ship `wget` or `curl`.
+- `frontend`, `nginx`, `prometheus`, `grafana`, `jaeger`, and `celery-worker` are scaffolded but not yet run through a full end-to-end validation pass.
 
 ---
 
@@ -47,6 +53,8 @@ Runs on all incoming Pull Requests:
 - **Linting**: Runs `ruff check` on backend code and `eslint` on frontend files.
 - **Code Formatting**: Checks formatting using `black` and `prettier`.
 - **Unit Testing**: Runs `pytest` suites and collects coverage reports.
+
+Current status: planned, not yet implemented.
 
 ### 2. Deployment Pipeline (`deploy.yml`)
 Runs on merges to the `main` branch:
@@ -74,3 +82,4 @@ In production, local containers are migrated to managed cloud services:
 ## 🔒 Configuration Guardrails
 - **Load URL variables**: Ensure that all database and service URLs are loaded from environment variables.
 - **Isolate Secrets**: Store API keys and credentials in private `.env` files locally and GitHub Secrets in CI, never committing them to source control.
+- **Separate host and Compose configs**: The repository root `.env` is used for Docker Compose service hostnames, while `backend/.env` is reserved for host-side Python tooling that needs `localhost` addresses.

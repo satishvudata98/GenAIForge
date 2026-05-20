@@ -35,11 +35,13 @@ The system is designed as a modular microservices architecture. It uses **Nginx*
 - **State Management**: Managed using `Zustand` stores to keep UI state synchronized.
 - **Real-Time Connections**: Uses browser native `EventSource` connections to process SSE streaming tokens.
 - **Visual Rendering**: Renders graph nodes dynamically using the `React Flow` framework.
+- **Current State**: A minimal landing page and Dockerized app shell are implemented; feature pages are still pending.
 
 ### 2. Backend Architecture (FastAPI)
 - **API Engine**: FastAPI handles HTTP request routing asynchronously.
 - **Settings System**: Uses `pydantic-settings` to load and validate configurations from environment variables.
 - **Concurrency Model**: Implements Python's async/await framework to handle connections without blocking main processes.
+- **Current State**: `/v1/health`, `/v1/readiness`, `/metrics`, CORS, request ID propagation, request logging, and Prometheus latency counters are implemented.
 
 ### 3. Background Workers (Celery)
 - **Task Runner**: Celery executes long-running tasks in the background.
@@ -47,6 +49,7 @@ The system is designed as a modular microservices architecture. It uses **Nginx*
 - **Execution Queues**:
   - `agents`: Handles multi-agent execution graphs.
   - `evals`: Executes RAGAS quality checks and evaluations.
+- **Current State**: Celery is bootstrapped but no task modules have been implemented yet.
 
 ---
 
@@ -72,3 +75,7 @@ AI pipelines are managed using specialized frameworks:
 - **Isolate Workloads**: Run heavy processing tasks (like evaluations or agent flows) on Celery workers to keep the FastAPI web server responsive.
 - **Database Scaling**: Migrate databases to managed cloud services (like Supabase and Qdrant Cloud) in production to ensure high availability.
 - **Disable Stream Buffering**: Add the `X-Accel-Buffering: no` header to streaming responses to prevent Nginx from caching data chunks.
+
+## ⚠️ Current Limitations
+- The LangFuse service is defined as an optional Compose profile and is not wired into the backend yet.
+- The RAG and multi-agent execution paths remain planned architecture, not current runtime behavior.

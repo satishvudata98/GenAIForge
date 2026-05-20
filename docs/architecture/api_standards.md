@@ -71,6 +71,15 @@ Errors use standard JSON structures containing validation details and request co
 
 ## 🔌 API Endpoint Specifications
 
+### 0. Health Check (`GET /v1/health`)
+- **Method**: `GET`
+- **Success Response**: Returns the standard response envelope with service status and environment details.
+
+### 0b. Readiness Check (`GET /v1/readiness`)
+- **Method**: `GET`
+- **Success Response**: Returns the standard response envelope with dependency checks for PostgreSQL, Redis, and Qdrant.
+- **Failure Response**: Returns `503` with the same payload shape when one or more upstream services are unavailable.
+
 ### 1. Document Ingestion (`POST /v1/rag/ingest`)
 - **Method**: `POST`
 - **Payload**: `multipart/form-data` containing files, collections, and partition settings.
