@@ -10,6 +10,12 @@ from app.middleware import register_middleware
 def create_app() -> FastAPI:
     settings = get_settings()
 
+    if not settings.otel_disabled:
+        from app.observability.otel import instrument_redis, setup_tracing
+
+        setup_tracing(service_name="genai-forge", otlp_endpoint=settings.otel_exporter_otlp_endpoint)
+        instrument_redis()
+
     app = FastAPI(
         title=settings.app_name,
         debug=settings.debug,
@@ -27,6 +33,11 @@ def create_app() -> FastAPI:
     register_middleware(app)
     app.include_router(api_router, prefix=settings.api_v1_prefix)
     app.mount("/metrics", make_asgi_app())
+
+    if not settings.otel_disabled:
+        from app.observability.otel import instrument_fastapi
+
+        instrument_fastapi(app)
 
     @app.get("/")
     async def root() -> dict[str, str]:

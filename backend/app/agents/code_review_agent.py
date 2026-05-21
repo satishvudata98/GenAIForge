@@ -11,6 +11,7 @@ from langgraph.types import interrupt
 from app.agents.checkpointer import get_postgres_checkpointer
 from app.agents.state import CodeReviewState
 from app.core.llm_clients import stream_completion
+from app.core.tracing import observe, update_span_usage
 
 logger = logging.getLogger("genai_forge.code_review_agent")
 
@@ -20,11 +21,14 @@ async def _call_llm(prompt: str, model: str = "gpt-4o-mini") -> str:
     gen = await stream_completion(model=model, messages=[{"role": "user", "content": prompt}])
     async for token in gen:
         tokens.append(token)
-    return "".join(tokens)
+    result = "".join(tokens)
+    update_span_usage(model, prompt, result)
+    return result
 
 
 # ── Graph nodes ──────────────────────────────────────────────────────────────
 
+@observe(name="code_review_analyze_node")
 async def analyze_node(state: CodeReviewState) -> CodeReviewState:
     analysis = await _call_llm(
         f"Analyze this {state['language']} code for quality, clarity, and correctness.\n\n```\n{state['code']}\n```"
@@ -32,6 +36,7 @@ async def analyze_node(state: CodeReviewState) -> CodeReviewState:
     return {**state, "analysis": analysis, "current_node": "analyze", "messages": [AIMessage(content=analysis)]}
 
 
+@observe(name="code_review_security_node")
 async def security_node(state: CodeReviewState) -> CodeReviewState:
     raw = await _call_llm(
         f"List all security vulnerabilities in this {state['language']} code as a JSON array of strings.\n\n```\n{state['code']}\n```"
@@ -50,6 +55,7 @@ async def security_node(state: CodeReviewState) -> CodeReviewState:
     }
 
 
+@observe(name="code_review_suggest_node")
 async def suggest_node(state: CodeReviewState) -> CodeReviewState:
     context = f"Analysis:\n{state['analysis']}\n\nSecurity issues:\n" + "\n".join(state["security_issues"])
     raw = await _call_llm(
@@ -69,6 +75,7 @@ async def suggest_node(state: CodeReviewState) -> CodeReviewState:
     }
 
 
+@observe(name="code_review_human_review_node")
 async def human_review_node(state: CodeReviewState) -> CodeReviewState:
     """Interrupt the graph to collect human feedback; resumes when feedback is provided."""
     review_summary = (
@@ -87,6 +94,7 @@ async def human_review_node(state: CodeReviewState) -> CodeReviewState:
     }
 
 
+@observe(name="code_review_finalize_node")
 async def finalize_node(state: CodeReviewState) -> CodeReviewState:
     feedback_section = f"\n\nHuman feedback: {state['human_feedback']}" if state["human_feedback"] else ""
     final_report = await _call_llm(

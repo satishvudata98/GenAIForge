@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from app.middleware import check_rate_limit
 from app.models.schemas import SseEvent
+from app.observability.metrics import ACTIVE_AGENT_RUNS, AGENT_RUNS_TOTAL
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -58,6 +59,8 @@ async def research_route(request: Request, payload: ResearchRequest):
     }
 
     async def event_stream():
+        ACTIVE_AGENT_RUNS.labels(agent_type="research").inc()
+        AGENT_RUNS_TOTAL.labels(agent_type="research", status="started").inc()
         try:
             async for chunk in research_graph.astream(initial_state, stream_mode="updates"):
                 for node_name, node_output in chunk.items():
@@ -66,8 +69,12 @@ async def research_route(request: Request, payload: ResearchRequest):
             # Final report SSE event
             final_state = await research_graph.ainvoke(initial_state)
             yield _sse(SseEvent(type="source", content={"report": final_state.get("report", "")}))
+            AGENT_RUNS_TOTAL.labels(agent_type="research", status="completed").inc()
         except Exception as exc:
+            AGENT_RUNS_TOTAL.labels(agent_type="research", status="error").inc()
             yield _sse(SseEvent(type="chunk", content={"node": "error", "data": str(exc)}))
+        finally:
+            ACTIVE_AGENT_RUNS.labels(agent_type="research").dec()
 
         latency_ms = int((perf_counter() - started_at) * 1000)
         yield _sse(SseEvent(type="meta", content={"request_id": request_id, "model": payload.model, "latency_ms": latency_ms}))
@@ -116,6 +123,8 @@ async def code_review_route(request: Request, payload: CodeReviewRequest):
     _hitl_jobs[job_id] = {"graph": graph, "config": config, "state": initial_state}
 
     async def event_stream():
+        ACTIVE_AGENT_RUNS.labels(agent_type="code_review").inc()
+        AGENT_RUNS_TOTAL.labels(agent_type="code_review", status="started").inc()
         try:
             async for chunk in graph.astream(initial_state, config=config, stream_mode="updates"):
                 for node_name, node_output in chunk.items():
@@ -128,7 +137,10 @@ async def code_review_route(request: Request, payload: CodeReviewRequest):
                             "suggestions": node_output.get("suggestions", []),
                         }))
         except Exception as exc:
+            AGENT_RUNS_TOTAL.labels(agent_type="code_review", status="error").inc()
             yield _sse(SseEvent(type="chunk", content={"node": "error", "data": str(exc)}))
+        finally:
+            ACTIVE_AGENT_RUNS.labels(agent_type="code_review").dec()
 
         latency_ms = int((perf_counter() - started_at) * 1000)
         yield _sse(SseEvent(type="meta", content={"request_id": request_id, "job_id": job_id, "latency_ms": latency_ms, "status": "awaiting_human_review"}))

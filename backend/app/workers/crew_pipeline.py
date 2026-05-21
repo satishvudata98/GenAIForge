@@ -5,9 +5,12 @@ Requires: crewai>=0.90
 import logging
 from typing import Any
 
+from app.core.tracing import observe
+
 logger = logging.getLogger("genai_forge.crew_pipeline")
 
 
+@observe(name="crew_pipeline_run")
 async def run_crew_pipeline(topic: str, model: str = "gpt-4o-mini") -> dict[str, Any]:
     """Run the Researcher → Writer → Editor pipeline and return the final article."""
     try:

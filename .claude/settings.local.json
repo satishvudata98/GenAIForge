@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(Get-ChildItem -Force)",
-      "Bash(Select-Object Name, PSIsContainer)"
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Get-ChildItem -Path \"d:\\\\GenAIForge\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "PowerShell(New-Item -ItemType Directory -Path \"d:\\\\GenAIForge\\\\backend\\\\app\\\\observability\" -Force)",
+      "PowerShell(New-Item -ItemType Directory -Path \"d:\\\\GenAIForge\\\\infra\\\\grafana\\\\datasources\" -Force)",
+      "PowerShell(New-Item -ItemType Directory -Path \"d:\\\\GenAIForge\\\\infra\\\\grafana\\\\provisioning\" -Force)",
+      "PowerShell(New-Item -ItemType Directory -Path \"d:\\\\GenAIForge\\\\infra\\\\grafana\\\\dashboards\" -Force)",
+      "PowerShell(New-Item -ItemType Directory -Path \"d:\\\\GenAIForge\\\\frontend\\\\app\\\\observability\\\\components\" -Force)",
+      "PowerShell(New-Item -ItemType Directory -Path \"d:\\\\GenAIForge\\\\frontend\\\\app\\\\gateway\\\\components\" -Force)"
     ]
   }
 }

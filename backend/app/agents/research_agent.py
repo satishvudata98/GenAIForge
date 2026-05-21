@@ -14,6 +14,7 @@ from langgraph.graph import END, START, StateGraph
 from app.agents.state import ResearchState
 from app.config import get_settings
 from app.core.llm_clients import stream_completion
+from app.core.tracing import observe, update_span_usage
 
 logger = logging.getLogger("genai_forge.research_agent")
 settings = get_settings()
@@ -25,7 +26,9 @@ async def _call_llm(prompt: str, model: str = "gpt-4o-mini") -> str:
     gen = await stream_completion(model=model, messages=[{"role": "user", "content": prompt}])
     async for token in gen:
         tokens.append(token)
-    return "".join(tokens)
+    result = "".join(tokens)
+    update_span_usage(model, prompt, result)
+    return result
 
 
 async def _tavily_search(query: str, max_results: int = 5) -> list[dict[str, Any]]:
@@ -55,6 +58,7 @@ async def _wikipedia_search(query: str) -> dict[str, Any]:
 
 # ── Graph nodes ──────────────────────────────────────────────────────────────
 
+@observe(name="research_plan_node")
 async def plan_node(state: ResearchState) -> ResearchState:
     plan = await _call_llm(
         f"Create a concise research plan (3-5 bullet steps) for answering this query:\n\n{state['query']}"
@@ -62,6 +66,7 @@ async def plan_node(state: ResearchState) -> ResearchState:
     return {**state, "plan": plan, "current_node": "plan", "messages": [AIMessage(content=f"Plan:\n{plan}")]}
 
 
+@observe(name="research_search_node")
 async def search_node(state: ResearchState) -> ResearchState:
     tavily_results = await _tavily_search(state["query"])
     wiki_result = await _wikipedia_search(state["query"])
@@ -72,6 +77,7 @@ async def search_node(state: ResearchState) -> ResearchState:
     return {**state, "search_results": all_results, "current_node": "search", "messages": [AIMessage(content=summary)]}
 
 
+@observe(name="research_extract_node")
 async def extract_node(state: ResearchState) -> ResearchState:
     sources_text = "\n\n".join(
         f"[{i+1}] {r.get('title', 'Unknown')}: {r.get('content', '')[:400]}"
@@ -89,6 +95,7 @@ async def extract_node(state: ResearchState) -> ResearchState:
     return {**state, "extracted_facts": facts, "current_node": "extract", "messages": [AIMessage(content=f"Extracted {len(facts)} facts.")]}
 
 
+@observe(name="research_synthesize_node")
 async def synthesize_node(state: ResearchState) -> ResearchState:
     facts_text = "\n".join(f"- {f}" for f in state["extracted_facts"])
     report = await _call_llm(
@@ -98,6 +105,7 @@ async def synthesize_node(state: ResearchState) -> ResearchState:
     return {**state, "report": report, "current_node": "synthesize", "messages": [AIMessage(content="Report drafted.")]}
 
 
+@observe(name="research_report_node")
 async def report_node(state: ResearchState) -> ResearchState:
     return {**state, "current_node": "report", "messages": [AIMessage(content="Research complete.")]}
 

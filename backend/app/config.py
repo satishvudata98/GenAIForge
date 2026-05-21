@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     semantic_cache_max_entries: int = 500
     rate_limit_rpm: int = 60
 
+    # Day 18: OpenTelemetry
+    otel_exporter_otlp_endpoint: str = "http://jaeger:4317"
+    otel_disabled: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:

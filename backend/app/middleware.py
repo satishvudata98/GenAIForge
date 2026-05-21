@@ -4,10 +4,11 @@ from time import perf_counter
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
-from prometheus_client import Counter, Histogram
+from opentelemetry import trace
 from redis.asyncio import Redis
 
 from app.config import get_settings
+from app.observability.metrics import REQUEST_COUNT, REQUEST_LATENCY
 
 settings = get_settings()
 
@@ -39,17 +40,6 @@ async def check_rate_limit(request: Request) -> None:
             headers={"Retry-After": "60"},
         )
 
-REQUEST_COUNT = Counter(
-    "http_requests_total",
-    "Total HTTP requests handled by the API.",
-    labelnames=("method", "path", "status_code"),
-)
-REQUEST_LATENCY = Histogram(
-    "http_request_duration_seconds",
-    "HTTP request latency in seconds.",
-    labelnames=("method", "path"),
-)
-
 
 def register_middleware(app: FastAPI) -> None:
     @app.middleware("http")
@@ -57,6 +47,11 @@ def register_middleware(app: FastAPI) -> None:
         start = perf_counter()
         request_id = request.headers.get("x-request-id") or f"req_{uuid4().hex}"
         request.state.request_id = request_id
+
+        # Propagate request_id into the active OTel span
+        span = trace.get_current_span()
+        if span.is_recording():
+            span.set_attribute("request.id", request_id)
 
         response = await call_next(request)
 

@@ -35,6 +35,35 @@ def _get_cohere_client() -> AsyncClient:
     return AsyncClient(api_key=settings.cohere_api_key)
 
 
+@observe(name="qdrant_vector_search")
+async def _qdrant_search(
+    store: QdrantStore, collection_name: str, query_vector: list[float], top_k: int
+) -> list:
+    return await store.search(collection_name=collection_name, query_vector=query_vector, top_k=top_k)
+
+
+@observe(name="cohere_rerank")
+async def _cohere_rerank(
+    query: str, chunks: "list[RetrievedChunk]", top_k: int
+) -> "list[RetrievedChunk]":
+    rerank_response = await _get_cohere_client().rerank(
+        model="rerank-english-v3.0",
+        query=query,
+        documents=[chunk.text for chunk in chunks],
+        top_n=top_k,
+    )
+    return [
+        RetrievedChunk(
+            text=chunks[r.index].text,
+            score=float(r.relevance_score),
+            document_id=chunks[r.index].document_id,
+            source_file=chunks[r.index].source_file,
+            page_number=chunks[r.index].page_number,
+        )
+        for r in rerank_response.results
+    ]
+
+
 @observe(name="rag_retrieve")
 async def retrieve_chunks(
     *,
@@ -50,10 +79,8 @@ async def retrieve_chunks(
     store = vector_store or QdrantStore()
     try:
         query_vector = (await embed_texts([query]))[0]
-        raw_hits = await store.search(
-            collection_name=collection_name,
-            query_vector=query_vector,
-            top_k=top_k * 3 if use_reranker else top_k,
+        raw_hits = await _qdrant_search(
+            store, collection_name, query_vector, top_k * 3 if use_reranker else top_k
         )
     finally:
         if vector_store is None:
@@ -74,24 +101,4 @@ async def retrieve_chunks(
     if not use_reranker or not chunks:
         return chunks[:top_k]
 
-    rerank_response = await _get_cohere_client().rerank(
-        model="rerank-english-v3.0",
-        query=query,
-        documents=[chunk.text for chunk in chunks],
-        top_n=top_k,
-    )
-
-    reranked_chunks: list[RetrievedChunk] = []
-    for result in rerank_response.results:
-        chunk = chunks[result.index]
-        reranked_chunks.append(
-            RetrievedChunk(
-                text=chunk.text,
-                score=float(result.relevance_score),
-                document_id=chunk.document_id,
-                source_file=chunk.source_file,
-                page_number=chunk.page_number,
-            )
-        )
-
-    return reranked_chunks
+    return await _cohere_rerank(query, chunks, top_k)

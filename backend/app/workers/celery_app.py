@@ -17,6 +17,12 @@ celery_app.conf.update(
     result_serializer="json",
     accept_content=["json"],
     task_track_started=True,
-    worker_prefetch_multiplier=1,  # prevent task starvation on single worker
+    worker_prefetch_multiplier=1,
     task_acks_late=True,
 )
+
+if not settings.otel_disabled:
+    from app.observability.otel import instrument_celery, setup_tracing
+
+    setup_tracing(service_name="genai-forge-celery", otlp_endpoint=settings.otel_exporter_otlp_endpoint)
+    instrument_celery()

@@ -8,18 +8,20 @@ Use this checklist to track your implementation progress across all 4 weeks of t
 
 - Week 1 completed day blocks: 7 of 7 (`Day 1` through `Day 7`)
 - Week 2 completed day blocks: 7 of 7 (`Day 8` through `Day 14`)
-- Remaining: Week 3 (Days 15–21) and Week 4 (Days 22–30)
+- Week 3 completed day blocks: 7 of 7 (`Day 15` through `Day 21`)
+- Remaining: Week 4 (Days 22–30)
 
 Current implementation:
 - Done: Week 1 — full RAG pipeline, 10-service Docker Compose, CI workflow.
-- Done: Day 8 — semantic cache (`core/semantic_cache.py`, cosine ≥ 0.95), Redis token bucket rate limiter, `X-Cache` headers.
-- Done: Day 9 — unified LLM clients (`core/llm_clients.py`) for OpenAI, Groq, Gemini, xAI via OpenAI-compat API.
-- Done: Day 10 — LangGraph Research Agent (`agents/research_agent.py`) with Tavily + Wikipedia tools.
-- Done: Day 11 — Code Review Agent with HITL (`agents/code_review_agent.py`, `agents/checkpointer.py`), `POST /v1/agents/resume/{job_id}`.
-- Done: Day 12 — CrewAI pipeline (`workers/crew_pipeline.py`), Celery tasks (`workers/tasks.py`), workers SSE routes.
-- Done: Day 13 — Next.js RAG Playground (`/playground`) with Tailwind CSS, QueryPanel, ResponseStream, SourceCard.
-- Done: Day 14 — Agent Board (`/agents`) with React Flow graph, HumanInputModal, Zustand stores, shared SSE hook.
-- Pending: Week 3 implementation (observability, RAGAS eval, Grafana dashboards).
+- Done: Week 2 — semantic cache, rate limiting, multi-model LLM, LangGraph agents, CrewAI, RAG Playground UI, Agent Board UI.
+- Done: Day 15 — LangFuse full instrumentation (`@observe()` on all LLM/agent/retrieval calls, cost helpers in `core/tracing.py`).
+- Done: Day 16 — Prometheus metrics (`observability/metrics.py`), HTTP + LLM + cache + agent counters, `/metrics` endpoint.
+- Done: Day 17 — Grafana auto-provisioning (datasources, `api_metrics.json`, `llm_metrics.json`, docker-compose volumes).
+- Done: Day 18 — OpenTelemetry OTLP exporter to Jaeger, FastAPI/SQLAlchemy/Redis/Celery instrumentors, `X-Request-ID` span attribute.
+- Done: Day 19 — RAGAS evaluation pipeline (`rag/evaluation.py`), `eval_runs` table, `POST /v1/eval/run`, `GET /v1/eval/results`.
+- Done: Day 20 — Observability Dashboard UI (`/observability`): Grafana iframes, LangFuse iframe, RAGAS runner + scorecards.
+- Done: Day 21 — API Gateway UI (`/gateway`): cache chart, rate-limit panel, API key manager; backend `GET/POST/DELETE /v1/gateway/keys`.
+- Pending: Week 4 implementation (testing, cloud deployment).
 
 ## 📅 Week 1: Foundation & Baseline RAG
 
@@ -98,33 +100,33 @@ Current implementation:
 
 ## 📅 Week 3: Full-Stack Observability & API Gateway
 
-- [ ] **Day 15: LangFuse Instrumentation**
-  - [ ] Instrument all LLM, agent, and retrieval calls with `@observe()` decorators.
-  - [ ] Map token usage, API pricing, and custom spans (Qdrant, Cohere).
-- [ ] **Day 16: Prometheus Metrics Setup**
-  - [ ] Setup Prometheus gauges and counters in `backend/app/observability/metrics.py`.
-  - [ ] Expose metrics via `/metrics` endpoint.
-  - [ ] Setup Prometheus configuration targets.
-- [ ] **Day 17: Grafana Dashboard Provisioning**
-  - [ ] Provision Prometheus data source configs.
-  - [ ] Write System Health Dashboard dashboard configs (`api_metrics.json`).
-  - [ ] Write AI Performance Dashboard dashboard configs (`llm_metrics.json`).
-- [ ] **Day 18: Distributed Tracing with OpenTelemetry**
-  - [ ] Set up OpenTelemetry middleware and OTLP exporters.
-  - [ ] Trace API requests, database queries, and Celery executions through Jaeger.
-  - [ ] Propagate correlation ID `X-Request-ID` across all spans.
-- [ ] **Day 19: RAGAS Evaluation Pipeline**
-  - [ ] Build RAGAS calculation scripts checking faithfulness, recall, and precision.
-  - [ ] Expose evaluation run endpoints (`POST /v1/eval/run`, `GET /v1/eval/results`).
-  - [ ] Create PostgreSQL logs mapping evaluation scores.
-- [ ] **Day 20: Observability Dashboard UI**
-  - [ ] Create Observability interface page `/observability`.
-  - [ ] Embed Grafana and LangFuse dashboards using secure iframe containers.
-  - [ ] Build the RAGAS evaluation runner and scorecard comparison panels.
-- [ ] **Day 21: API Gateway Control UI**
-  - [ ] Build API Gateway interface view `/gateway`.
-  - [ ] Build cache performance charts and rate-limit counters.
-  - [ ] Create API Key generator panels.
+- [x] **Day 15: LangFuse Instrumentation**
+  - [x] Instrument all LLM, agent, and retrieval calls with `@observe()` decorators.
+  - [x] Map token usage, API pricing, and custom spans (Qdrant, Cohere).
+- [x] **Day 16: Prometheus Metrics Setup**
+  - [x] Setup Prometheus gauges and counters in `backend/app/observability/metrics.py`.
+  - [x] Expose metrics via `/metrics` endpoint.
+  - [x] Setup Prometheus configuration targets.
+- [x] **Day 17: Grafana Dashboard Provisioning**
+  - [x] Provision Prometheus data source configs.
+  - [x] Write System Health Dashboard dashboard configs (`api_metrics.json`).
+  - [x] Write AI Performance Dashboard dashboard configs (`llm_metrics.json`).
+- [x] **Day 18: Distributed Tracing with OpenTelemetry**
+  - [x] Set up OpenTelemetry middleware and OTLP exporters.
+  - [x] Trace API requests, database queries, and Celery executions through Jaeger.
+  - [x] Propagate correlation ID `X-Request-ID` across all spans.
+- [x] **Day 19: RAGAS Evaluation Pipeline**
+  - [x] Build RAGAS calculation scripts checking faithfulness, recall, and precision.
+  - [x] Expose evaluation run endpoints (`POST /v1/eval/run`, `GET /v1/eval/results`).
+  - [x] Create PostgreSQL logs mapping evaluation scores.
+- [x] **Day 20: Observability Dashboard UI**
+  - [x] Create Observability interface page `/observability`.
+  - [x] Embed Grafana and LangFuse dashboards using secure iframe containers.
+  - [x] Build the RAGAS evaluation runner and scorecard comparison panels.
+- [x] **Day 21: API Gateway Control UI**
+  - [x] Build API Gateway interface view `/gateway`.
+  - [x] Build cache performance charts and rate-limit counters.
+  - [x] Create API Key generator panels.
 
 ---
 

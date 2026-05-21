@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.core.embeddings import embed_texts
-from app.core.tracing import observe
+from app.core.tracing import observe, update_span_usage
 from app.core.vector_store import QdrantStore, build_point
 from app.models.db import RagCollection
 from app.models.schemas import IngestResponse
@@ -111,6 +111,7 @@ async def ingest_documents(
         if vector_store is None:
             await store.close()
 
+    update_span_usage(settings.embedding_model, " ".join(texts))
     collection.doc_count += len(documents)
     collection.chunk_count += len(unique_chunks)
     collection.embedding_model = settings.embedding_model

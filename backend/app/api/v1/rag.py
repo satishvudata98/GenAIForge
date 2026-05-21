@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.semantic_cache import capturing_sse_stream, get_cached_response, replay_cached_sse
 from app.dependencies import get_db
 from app.middleware import check_rate_limit
+from app.observability.metrics import RAG_CACHE_HITS, RAG_CACHE_MISSES
 from app.models.db import RagCollection
 from app.models.schemas import (
     ApiResponse,
@@ -159,11 +160,13 @@ async def query_route(
     # Semantic cache lookup
     cache_entry = await get_cached_response(payload.query)
     if cache_entry is not None:
+        RAG_CACHE_HITS.inc()
         return StreamingResponse(
             replay_cached_sse(cache_entry, request_id=request_id, started_at=started_at, model=payload.model),
             media_type="text/event-stream",
             headers={**_SSE_HEADERS, "X-Cache": "HIT"},
         )
+    RAG_CACHE_MISSES.inc()
 
     try:
         chunks = await retrieve_chunks(

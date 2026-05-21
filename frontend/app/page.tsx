@@ -1,8 +1,10 @@
+"use client";
+
 const modules = [
   { name: "RAG Playground", href: "/playground", ready: true, desc: "Semantic search with multi-model support, reranking, and streaming responses." },
   { name: "Multi-Agent Board", href: "/agents", ready: true, desc: "LangGraph research & code-review agents with live graph visualization and HITL." },
-  { name: "Observability & Eval", href: "/observability", ready: false, desc: "Prometheus + Grafana dashboards, LangFuse tracing, and RAGAS evaluation." },
-  { name: "API Gateway", href: "/gateway", ready: false, desc: "Rate limiting, semantic cache stats, and API key management." },
+  { name: "Observability & Eval", href: "/observability", ready: true, desc: "Prometheus + Grafana dashboards, LangFuse tracing, and RAGAS evaluation." },
+  { name: "API Gateway", href: "/gateway", ready: true, desc: "Rate limiting, semantic cache stats, and API key management." },
 ];
 
 export default function HomePage() {
@@ -26,7 +28,7 @@ export default function HomePage() {
         }}
       >
         <p style={{ letterSpacing: "0.24em", textTransform: "uppercase", fontSize: "0.8rem" }}>
-          Week 2 — Live
+          Week 3 — Live
         </p>
         <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 5rem)", margin: "0.5rem 0 1rem" }}>
           GenAI Forge

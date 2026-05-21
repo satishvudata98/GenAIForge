@@ -11,3 +11,5 @@ venv
 backend/.venv
 .pytest_cache
 .ruff_cache
+.claude
+.claude/

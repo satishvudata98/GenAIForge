@@ -136,9 +136,17 @@ services:
     container_name: genai-forge-grafana
     ports:
       - "${GRAFANA_PORT:-43011}:3000"
+    environment:
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
     depends_on:
       prometheus:
         condition: service_started
+    volumes:
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
     networks:
       - genai_net
 
