@@ -1,5 +1,6 @@
 """Agent API routes — research (Day 10) and code review with HITL (Day 11)."""
 import json
+import logging
 import uuid
 from time import perf_counter
 
@@ -8,11 +9,19 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from langgraph.types import Command
 from pydantic import BaseModel
 
-from app.middleware import check_rate_limit
 from app.models.schemas import SseEvent
 from app.observability.metrics import ACTIVE_AGENT_RUNS, AGENT_RUNS_TOTAL
 
+logger = logging.getLogger("genai_forge.agents")
+
 router = APIRouter(prefix="/agents", tags=["agents"])
+
+_SSE_MEDIA_TYPE = "text/event-stream"
+_SSE_HEADERS = {
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+}
 
 
 def _sse(event: SseEvent) -> str:
@@ -61,30 +70,39 @@ async def research_route(request: Request, payload: ResearchRequest):
     async def event_stream():
         ACTIVE_AGENT_RUNS.labels(agent_type="research").inc()
         AGENT_RUNS_TOTAL.labels(agent_type="research", status="started").inc()
+        accumulated_report = ""
         try:
             async for chunk in research_graph.astream(initial_state, stream_mode="updates"):
                 for node_name, node_output in chunk.items():
-                    yield _sse(SseEvent(type="chunk", content={"node": node_name, "data": node_output.get("current_node", node_name)}))
+                    node_data = node_output.get("current_node", node_name)
+                    yield _sse(SseEvent(
+                        type="chunk",
+                        content={"node": node_name, "data": node_data},
+                    ))
+                    # Accumulate from stream — avoids a second ainvoke() call
+                    if node_output.get("report"):
+                        accumulated_report = node_output["report"]
 
-            # Final report SSE event
-            final_state = await research_graph.ainvoke(initial_state)
-            yield _sse(SseEvent(type="source", content={"report": final_state.get("report", "")}))
+            yield _sse(SseEvent(type="source", content={"report": accumulated_report}))
             AGENT_RUNS_TOTAL.labels(agent_type="research", status="completed").inc()
-        except Exception as exc:
+        except Exception:
+            logger.exception("Research agent error for request %s", request_id)
             AGENT_RUNS_TOTAL.labels(agent_type="research", status="error").inc()
-            yield _sse(SseEvent(type="chunk", content={"node": "error", "data": str(exc)}))
+            yield _sse(SseEvent(
+                type="chunk",
+                content={"node": "error", "data": "Research agent execution failed."},
+            ))
         finally:
             ACTIVE_AGENT_RUNS.labels(agent_type="research").dec()
 
         latency_ms = int((perf_counter() - started_at) * 1000)
-        yield _sse(SseEvent(type="meta", content={"request_id": request_id, "model": payload.model, "latency_ms": latency_ms}))
+        yield _sse(SseEvent(
+            type="meta",
+            content={"request_id": request_id, "model": payload.model, "latency_ms": latency_ms},
+        ))
         yield _sse(SseEvent(type="done"))
 
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
-    )
+    return StreamingResponse(event_stream(), media_type=_SSE_MEDIA_TYPE, headers=_SSE_HEADERS)
 
 
 # ── Code Review Agent (HITL) ──────────────────────────────────────────────────
@@ -126,9 +144,14 @@ async def code_review_route(request: Request, payload: CodeReviewRequest):
         ACTIVE_AGENT_RUNS.labels(agent_type="code_review").inc()
         AGENT_RUNS_TOTAL.labels(agent_type="code_review", status="started").inc()
         try:
-            async for chunk in graph.astream(initial_state, config=config, stream_mode="updates"):
+            async for chunk in graph.astream(
+                initial_state, config=config, stream_mode="updates"
+            ):
                 for node_name, node_output in chunk.items():
-                    yield _sse(SseEvent(type="chunk", content={"node": node_name, "job_id": job_id}))
+                    yield _sse(SseEvent(
+                        type="chunk",
+                        content={"node": node_name, "job_id": job_id},
+                    ))
                     if node_name == "suggest":
                         yield _sse(SseEvent(type="source", content={
                             "job_id": job_id,
@@ -136,21 +159,29 @@ async def code_review_route(request: Request, payload: CodeReviewRequest):
                             "security_issues": node_output.get("security_issues", []),
                             "suggestions": node_output.get("suggestions", []),
                         }))
-        except Exception as exc:
+        except Exception:
+            logger.exception("Code review agent error for job %s", job_id)
             AGENT_RUNS_TOTAL.labels(agent_type="code_review", status="error").inc()
-            yield _sse(SseEvent(type="chunk", content={"node": "error", "data": str(exc)}))
+            yield _sse(SseEvent(
+                type="chunk",
+                content={"node": "error", "data": "Code review agent execution failed."},
+            ))
         finally:
             ACTIVE_AGENT_RUNS.labels(agent_type="code_review").dec()
 
         latency_ms = int((perf_counter() - started_at) * 1000)
-        yield _sse(SseEvent(type="meta", content={"request_id": request_id, "job_id": job_id, "latency_ms": latency_ms, "status": "awaiting_human_review"}))
+        yield _sse(SseEvent(
+            type="meta",
+            content={
+                "request_id": request_id,
+                "job_id": job_id,
+                "latency_ms": latency_ms,
+                "status": "awaiting_human_review",
+            },
+        ))
         yield _sse(SseEvent(type="done"))
 
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
-    )
+    return StreamingResponse(event_stream(), media_type=_SSE_MEDIA_TYPE, headers=_SSE_HEADERS)
 
 
 @router.post("/resume/{job_id}")
@@ -160,7 +191,10 @@ async def resume_route(job_id: str, payload: ResumeRequest, request: Request):
     if job is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content={"error": {"code": "JOB_NOT_FOUND", "message": f"No active job with id '{job_id}'."}},
+            content={"error": {
+                "code": "JOB_NOT_FOUND",
+                "message": f"No active job with id '{job_id}'.",
+            }},
         )
 
     graph = job["graph"]
@@ -173,17 +207,20 @@ async def resume_route(job_id: str, payload: ResumeRequest, request: Request):
                 config=config,
                 stream_mode="updates",
             ):
-                for node_name, node_output in chunk.items():
-                    yield _sse(SseEvent(type="chunk", content={"node": node_name, "job_id": job_id}))
-        except Exception as exc:
-            yield _sse(SseEvent(type="chunk", content={"node": "error", "data": str(exc)}))
+                for node_name, _ in chunk.items():
+                    yield _sse(SseEvent(
+                        type="chunk",
+                        content={"node": node_name, "job_id": job_id},
+                    ))
+        except Exception:
+            logger.exception("Resume error for job %s", job_id)
+            yield _sse(SseEvent(
+                type="chunk",
+                content={"node": "error", "data": "Agent resume execution failed."},
+            ))
 
         _hitl_jobs.pop(job_id, None)
         yield _sse(SseEvent(type="meta", content={"job_id": job_id, "status": "complete"}))
         yield _sse(SseEvent(type="done"))
 
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
-    )
+    return StreamingResponse(event_stream(), media_type=_SSE_MEDIA_TYPE, headers=_SSE_HEADERS)

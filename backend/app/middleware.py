@@ -3,7 +3,7 @@ import time
 from time import perf_counter
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, status
 from opentelemetry import trace
 from redis.asyncio import Redis
 
@@ -20,23 +20,38 @@ _rate_limit_redis: Redis | None = None
 def _get_rate_limit_redis() -> Redis:
     global _rate_limit_redis
     if _rate_limit_redis is None:
-        _rate_limit_redis = Redis.from_url(settings.redis_url, encoding="utf-8", decode_responses=True)
+        _rate_limit_redis = Redis.from_url(
+            settings.redis_url, encoding="utf-8", decode_responses=True
+        )
     return _rate_limit_redis
 
 
 async def check_rate_limit(request: Request) -> None:
-    """FastAPI dependency — raises HTTP 429 when client exceeds rate_limit_rpm."""
+    """FastAPI dependency — raises HTTP 429 when client exceeds rate_limit_rpm.
+
+    Skips enforcement gracefully when Redis is unavailable.
+    """
     redis = _get_rate_limit_redis()
-    client_id = request.headers.get("x-api-key") or (request.client.host if request.client else "anon")
+    client_id = (
+        request.headers.get("x-api-key")
+        or (request.client.host if request.client else "anon")
+    )
     window = int(time.time() // 60)
     key = f"rl:{client_id}:{window}"
-    count = await redis.incr(key)
-    if count == 1:
-        await redis.expire(key, 60)
+    try:
+        count = await redis.incr(key)
+        if count == 1:
+            await redis.expire(key, 60)
+    except Exception:
+        logger.warning("Rate-limit Redis unavailable — skipping enforcement for %s", client_id)
+        return
     if count > settings.rate_limit_rpm:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={"code": "RATE_LIMIT_EXCEEDED", "message": f"Rate limit of {settings.rate_limit_rpm} RPM exceeded."},
+            detail={
+                "code": "RATE_LIMIT_EXCEEDED",
+                "message": f"Rate limit of {settings.rate_limit_rpm} RPM exceeded.",
+            },
             headers={"Retry-After": "60"},
         )
 
@@ -67,7 +82,8 @@ def register_middleware(app: FastAPI) -> None:
         REQUEST_LATENCY.labels(method=request.method, path=route_path).observe(elapsed_ms / 1000)
 
         logger.info(
-            "request_complete request_id=%s method=%s path=%s status_code=%s latency_ms=%s request_size=%s",
+            "request_complete request_id=%s method=%s path=%s "
+            "status_code=%s latency_ms=%s request_size=%s",
             request_id,
             request.method,
             route_path,

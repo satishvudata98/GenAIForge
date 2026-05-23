@@ -24,6 +24,13 @@ const CODE_REVIEW_NODES: AgentNodeState[] = [
   { id: "finalize", label: "Finalize", status: "idle" },
 ];
 
+function jobStatusClass(jobStatus: AgentJob["status"]): string {
+  if (jobStatus === "complete") return "bg-green-100 text-green-700";
+  if (jobStatus === "awaiting_human") return "bg-amber-100 text-amber-700";
+  if (jobStatus === "error") return "bg-red-100 text-red-700";
+  return "bg-forge-accent/10 text-forge-accent";
+}
+
 export default function AgentBoardPage() {
   const { jobs, activeJobId, addJob, updateNodeStatus, setJobStatus, setPendingReview, setBackendJobId, setReport, setActiveJob } =
     useAgentBoardStore();
@@ -94,12 +101,19 @@ export default function AgentBoardPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ feedback }),
-    }).then((r) => {
-      if (r.ok) {
-        updateNodeStatus(jobId, "finalize", "done");
-        setJobStatus(jobId, "complete");
-      }
-    });
+    })
+      .then((r) => {
+        if (r.ok) {
+          updateNodeStatus(jobId, "finalize", "done");
+          setJobStatus(jobId, "complete");
+        } else {
+          setJobStatus(jobId, "error");
+        }
+      })
+      .catch((err) => {
+        console.error("Resume failed:", err);
+        setJobStatus(jobId, "error");
+      });
   }
 
   return (
@@ -195,11 +209,9 @@ export default function AgentBoardPage() {
                       }`}
                     >
                       <span>{j.type} — {j.jobId.slice(0, 8)}</span>
-                      <span className={`rounded-full px-2 py-0.5 font-medium ${
-                        j.status === "complete" ? "bg-green-100 text-green-700" :
-                        j.status === "awaiting_human" ? "bg-amber-100 text-amber-700" :
-                        j.status === "error" ? "bg-red-100 text-red-700" : "bg-forge-accent/10 text-forge-accent"
-                      }`}>{j.status}</span>
+                      <span className={`rounded-full px-2 py-0.5 font-medium ${jobStatusClass(j.status)}`}>
+                        {j.status}
+                      </span>
                     </button>
                   ))}
                 </div>

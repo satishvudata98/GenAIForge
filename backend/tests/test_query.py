@@ -44,10 +44,14 @@ def test_query_route_streams_sse(monkeypatch) -> None:
 
     async def fake_stream_rag_response(**kwargs):
         assert kwargs["model"] == "gpt-4o-mini"
-        yield 'data: {"type":"chunk","content":"hello","index":0}\n\n'
-        yield 'data: {"type":"source","content":{"doc":"notes.md","score":0.98}}\n\n'
-        yield 'data: {"type":"meta","content":{"model":"gpt-4o-mini"}}\n\n'
-        yield 'data: {"type":"done","content":null,"index":null}\n\n'
+
+        async def _gen():
+            yield 'data: {"type":"chunk","content":"hello","index":0}\n\n'
+            yield 'data: {"type":"source","content":{"doc":"notes.md","score":0.98}}\n\n'
+            yield 'data: {"type":"meta","content":{"model":"gpt-4o-mini"}}\n\n'
+            yield 'data: {"type":"done","content":null,"index":null}\n\n'
+
+        return _gen()
 
     monkeypatch.setattr("app.api.v1.rag.retrieve_chunks", fake_retrieve_chunks)
     monkeypatch.setattr("app.api.v1.rag.stream_rag_response", fake_stream_rag_response)

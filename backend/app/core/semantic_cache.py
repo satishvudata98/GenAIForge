@@ -17,7 +17,7 @@ _CACHE_KEY = "semantic_cache:v1:entries"
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b, strict=False))
     mag_a = math.sqrt(sum(x * x for x in a))
     mag_b = math.sqrt(sum(x * x for x in b))
     if mag_a == 0.0 or mag_b == 0.0:
@@ -30,10 +30,16 @@ def _get_redis() -> Redis:
 
 
 async def get_cached_response(query: str) -> dict[str, Any] | None:
-    """Return a cached entry if a semantically similar query exists above the threshold."""
-    query_vec = (await embed_texts([query]))[0]
-    async with _get_redis() as redis:
-        raw_entries = await redis.lrange(_CACHE_KEY, 0, -1)
+    """Return a cached entry if a semantically similar query exists above the threshold.
+
+    Returns None gracefully when Redis or the embedding service is unavailable.
+    """
+    try:
+        query_vec = (await embed_texts([query]))[0]
+        async with _get_redis() as redis:
+            raw_entries = await redis.lrange(_CACHE_KEY, 0, -1)
+    except Exception:
+        return None
     for raw in raw_entries:
         entry = json.loads(raw)
         if _cosine(query_vec, entry["embedding"]) >= settings.semantic_cache_threshold:
@@ -73,13 +79,23 @@ def replay_cached_sse(
         words = text.split()
         for i, word in enumerate(words):
             content = word if i == len(words) - 1 else word + " "
-            yield f"data: {json.dumps(SseEvent(type='chunk', content=content, index=i).model_dump(mode='json'))}\n\n"
+            chunk_event = SseEvent(type="chunk", content=content, index=i)
+            yield f"data: {json.dumps(chunk_event.model_dump(mode='json'))}\n\n"
 
         for src in sources:
-            yield f"data: {json.dumps(SseEvent(type='source', content=src).model_dump(mode='json'))}\n\n"
+            src_event = SseEvent(type="source", content=src)
+            yield f"data: {json.dumps(src_event.model_dump(mode='json'))}\n\n"
 
         latency_ms = int((perf_counter() - started_at) * 1000)
-        yield f"data: {json.dumps(SseEvent(type='meta', content={'request_id': request_id, 'model': model, 'latency_ms': latency_ms, 'sources': len(sources), 'cache': 'HIT'}).model_dump(mode='json'))}\n\n"
+        meta_content = {
+            "request_id": request_id,
+            "model": model,
+            "latency_ms": latency_ms,
+            "sources": len(sources),
+            "cache": "HIT",
+        }
+        meta_event = SseEvent(type="meta", content=meta_content)
+        yield f"data: {json.dumps(meta_event.model_dump(mode='json'))}\n\n"
         yield f"data: {json.dumps(SseEvent(type='done').model_dump(mode='json'))}\n\n"
 
     return _gen()

@@ -20,6 +20,7 @@ export default function QueryPanel() {
   const [collectionId, setCollectionId] = useState("");
   const [topK, setTopK] = useState(5);
   const [useReranker, setUseReranker] = useState(true);
+  const [streamError, setStreamError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const { selectedModel, setSelectedModel, collections, startSession, appendChunk, addSource, finalizeSession } =
@@ -29,6 +30,7 @@ export default function QueryPanel() {
     e.preventDefault();
     if (!query.trim() || !collectionId) return;
 
+    setStreamError(null);
     abortRef.current?.abort();
 
     const sessionId = startSession(query, collectionId, selectedModel);
@@ -41,14 +43,18 @@ export default function QueryPanel() {
           if (typeof content === "string") appendChunk(sessionId, content);
         },
         onSource: (content) => {
-          addSource(sessionId, content as Source);
+          const source: Source = content as Source;
+          addSource(sessionId, source);
         },
         onMeta: (content) => {
           const meta = content as { latency_ms?: number; cache?: string };
           finalizeSession(sessionId, meta.latency_ms ?? 0, meta.cache === "HIT");
         },
         onDone: () => finalizeSession(sessionId, 0, false),
-        onError: (err) => console.error("SSE error:", err),
+        onError: (err) => {
+          setStreamError(err.message || "Stream failed — is the backend running?");
+          finalizeSession(sessionId, 0, false);
+        },
       }
     );
   }
@@ -106,7 +112,9 @@ export default function QueryPanel() {
         placeholder="Ask a question about your documents…"
         rows={3}
         className="w-full resize-none rounded-xl border border-forge-border bg-forge-surface px-4 py-3 text-sm text-forge-text placeholder:text-forge-muted/60 outline-none focus:border-forge-accent/50"
-        onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSubmit(e as unknown as React.FormEvent); }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSubmit(e as React.FormEvent);
+        }}
       />
 
       <button
@@ -116,6 +124,12 @@ export default function QueryPanel() {
       >
         Ask
       </button>
+
+      {streamError && (
+        <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+          {streamError}
+        </p>
+      )}
     </form>
   );
 }

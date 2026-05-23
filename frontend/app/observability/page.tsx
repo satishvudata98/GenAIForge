@@ -27,13 +27,17 @@ export default function ObservabilityPage() {
   const [tab, setTab] = useState<Tab>("metrics");
   const [runs, setRuns] = useState<EvalRun[]>([]);
   const [polling, setPolling] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchRuns = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/eval/results`);
-      if (res.ok) setRuns(await res.json());
+      if (res.ok) {
+        setRuns(await res.json());
+        setFetchError(null);
+      }
     } catch {
-      // silently skip on network error
+      setFetchError("Could not load evaluation results — is the backend running?");
     }
   }, []);
 
@@ -107,6 +111,11 @@ export default function ObservabilityPage() {
         {/* Evaluation tab */}
         {tab === "evaluation" && (
           <div className="flex flex-col gap-6">
+            {fetchError && (
+              <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                {fetchError}
+              </p>
+            )}
             <EvalRunner onRunStarted={fetchRuns} />
             <EvalScorecard runs={runs} />
           </div>

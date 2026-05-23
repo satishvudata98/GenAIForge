@@ -12,6 +12,9 @@ from app.models.db import EvalRun
 
 router = APIRouter(prefix="/eval", tags=["eval"])
 
+# Holds strong references to background tasks so they are not garbage-collected before completion.
+_background_tasks: set[asyncio.Task] = set()
+
 
 @router.post("/run", status_code=status.HTTP_202_ACCEPTED)
 async def start_eval_run(
@@ -48,7 +51,9 @@ async def start_eval_run(
                 db=bg_db,
             )
 
-    asyncio.ensure_future(_background())
+    task = asyncio.create_task(_background())
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
     return {"run_id": str(run_id), "status": "running", "dataset_name": dataset_name}
 
